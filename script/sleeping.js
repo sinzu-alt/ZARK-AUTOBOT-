@@ -1,9 +1,9 @@
-const fs = require("fs");
+const fs = require("fs")
 const path = require("path");
 
 module.exports.config = {
   name: "sleeping",
-  version: "7.0.0",
+  version: "7.1.0",
   hasPermission: 0,
   credits: "you",
   description: "Undetectable Pure Asar Troller Mode with Anti-Spam Protection.",
@@ -18,7 +18,7 @@ module.exports.config = {
  * OWNER CONFIGURATION
  * ============================================================
  */
-const OWNER_ID = "61594795855409";
+const OWNER_ID = "61594251452411";
 
 /*
  * ============================================================
@@ -101,11 +101,12 @@ function isFlooding(threadID) {
 
 /*
  * ============================================================
- * REPLIES & SUFFIXES
+ * REPLIES & SUFFIXES (EXPANDED LIST)
  * ============================================================
  */
 
 const sleepingReplies = [
+  // Original Lines
   "iyak muna bago magsalita",
   "kwento mo sa pagong",
   "sige lang, wala namang nagtanong",
@@ -159,12 +160,57 @@ const sleepingReplies = [
   "puro ka dada, wala ka namang maipakita",
   "galit ka na niyan? haha subukan mo pa",
   "ksp ka rin nuh?",
-  "patingin nga ng utak, mukhang wala e"
+  "patingin nga ng utak, mukhang wala e",
+
+  // New Additions
+  "boss baka gusto mo muna huminga, parang matutuluyan ka na dyan",
+  "parang sinulat ng grade 1 yung punto mo",
+  "ah ganun ba? ge seen lang natin yarn",
+  "mas may sense pa makipag-usap sa pader kesa sa'yo",
+  "lakas ng confidence ah, saan nabibili yan?",
+  "isang malaking wtf para sa sinabi mo",
+  "pa-counseling ka muna boss, iba na yan",
+  "daming ebas, wala namang ambag sa lipunan",
+  "subukan mo ulit, baka sakaling maging tama ka sa susunod",
+  "may discount ba sa katangahan mo ngayon?",
+  "medyo cringe ka dyan sa part na yan ah",
+  "yung pride mo paki-baba, baka matalisod ka",
+  "sana ol pinapanindigan ang maling argumento",
+  "bro think he's the main character 💀",
+  "sorry, di ako nakikipag-usap sa NPC",
+  "tuloy mo lang yan, ginagawa mo kaming masaya sa katangahan mo",
+  "lakas maka-pabida, wala namang nanonood",
+  "okay lang yan, kahit ikaw lang naniniwala sa sarili mo",
+  "paki-mura ako sa chat para ramdam ko galit mo",
+  "na-stress ako sa utak mo, parang brand new di nagagamit",
+  "ge lang, ilabas mo lang yang sama ng loob mo",
+  "paki-paliwanag ulit pero gamitin mo naman utak mo ngayon",
+  "walang nakikinig pero sige, magsalita ka lang",
+  "galit na galit si idol, pahinga ka muna",
+  "nakakatawa ka pala mag-chismis, paki-ulit",
+  "ano raw? paki-translate sa wika ng may utak",
+  "parang sirang plaka, paulit-ulit na ebas",
+  "magkano ba load mo para mag-post ng ganitong kabobohan?",
+  "isa pa, baka maging clown ka na tuluyan",
+  "ge lang, virtual hug para sa nasaktan mong pride",
+  "pa-explain naman nang dahan-dahan, mahina kasi memorya mo e",
+  "tayo na lang ba maiiwan dito sa kalokohan mo?",
+  "ganda ng speech mo ah, kailan ang firing squad?",
+  "noted. itatapon ko na sa basurahan yang sinabi mo",
+  "lakas maka-keyboard warrior ah, galawin ang baso",
+  "so feeling mo cool ka na niyan?",
+  "baka kailangan mo na mag-update ng OS sa utak",
+  "seryoso ka dyan o nagpapatawa ka lang?",
+  "minsan mag-isip ka muna bago mag-type",
+  "di ka ba napapagod maging ganyan?",
+  "ge lang, suportahan ta ka sa delusion mo"
 ];
 
 const randomSuffixes = [
   "", " HAHAHA", " 😂", " 🤣", " 😭", " 💀", " 🫣", " 🥱", 
-  "...", "!", "!!", " ah", " haha", " wao", " 👀"
+  "...", "!", "!!", " ah", " haha", " wao", " 👀",
+  " lol", " 🤡", " 🥱🥱", " 🗿", " 🤓", " xdd", " AYY WOW",
+  " bhie", " lods", " idol", " pffft", " 👈😂", " 🤪", " 💩"
 ];
 
 const lastReplyByThread = new Map();
@@ -334,3 +380,4 @@ module.exports.handleEvent = function ({ api, event }) {
 
 module.exports.handleReply = function () {};
 module.exports.handleReaction = function () {};
+
