@@ -14,7 +14,7 @@ module.exports.config = {
 
 /*
  * ============================================================
- * OWNER
+ * OWNER CONFIGURATION
  * ============================================================
  * PALITAN ITO NG FACEBOOK UID MO.
  */
@@ -84,11 +84,6 @@ function cancelThreadTimers(threadID) {
   pendingTimers.delete(threadID);
 }
 
-/*
- * FLOOD PROTECTION GUARD
- * Kapag sumobra sa 7 messages sa loob ng 10 seconds sa isang GC,
- * i-ignore muna para hindi ma-spam block ang account ng FB.
- */
 function isFlooding(threadID) {
   const now = Date.now();
   const track = messageTracker.get(threadID) || { count: 0, resetTime: now + 10000 };
@@ -106,7 +101,7 @@ function isFlooding(threadID) {
 
 /*
  * ============================================================
- * UNDETECTABLE PANG-ASAR REPLIES (WALANG "PRE" / "LODS")
+ * UNDETECTABLE PANG-ASAR REPLIES
  * ============================================================
  */
 
@@ -167,7 +162,6 @@ const sleepingReplies = [
   "patingin nga ng utak, mukhang wala e"
 ];
 
-// Anti-Spam Detector Suffixes (Dynamic Humanizer)
 const randomSuffixes = [
   "", " HAHAHA", " 😂", " 🤣", " 😭", " 💀", " 🫣", " 🥱", 
   "...", "!", "!!", " ah", " haha", " wao", " 👀"
@@ -190,7 +184,6 @@ function getRandomReply(threadID) {
 
   lastReplyByThread.set(threadID, reply);
 
-  // 10% chance to make the reply lowercase (Humanizer Effect)
   if (Math.random() < 0.1) {
     reply = reply.toLowerCase();
   }
@@ -200,7 +193,7 @@ function getRandomReply(threadID) {
 
 /*
  * ============================================================
- * REACTION
+ * HELPER FUNCTIONS
  * ============================================================
  */
 
@@ -213,12 +206,6 @@ function react(api, messageID) {
   }
 }
 
-/*
- * ============================================================
- * COMMAND DETECTOR
- * ============================================================
- */
-
 function isCommand(text) {
   const prefix = global.config?.PREFIX || "/";
   if (prefix && text.startsWith(prefix)) return true;
@@ -228,21 +215,9 @@ function isCommand(text) {
   return false;
 }
 
-/*
- * ============================================================
- * OWNER CHECK
- * ============================================================
- */
-
 function isOwner(senderID) {
   return String(senderID) === String(OWNER_ID);
 }
-
-/*
- * ============================================================
- * SEND TYPING
- * ============================================================
- */
 
 function startTyping(api, threadID) {
   try {
@@ -256,7 +231,38 @@ function startTyping(api, threadID) {
 
 /*
  * ============================================================
- * EVENT HANDLER
+ * COMMAND EXECUTION (REQUIRED FOR COMMANDS FOLDER)
+ * ============================================================
+ */
+
+module.exports.run = async function ({ api, event, args }) {
+  const { threadID, senderID, messageID } = event;
+
+  if (!isOwner(senderID)) {
+    return api.sendMessage("You do not have permission to use this command.", threadID, messageID);
+  }
+
+  if (args[0] === "on" || args[0] === ".") {
+    sleepingThreads.add(String(threadID));
+    saveThreads(sleepingThreads);
+    react(api, messageID);
+    return api.sendMessage("Sleeping mode activated.", threadID, messageID);
+  } 
+  
+  if (args[0] === "off" || args[0] === "..") {
+    sleepingThreads.delete(String(threadID));
+    saveThreads(sleepingThreads);
+    cancelThreadTimers(threadID);
+    react(api, messageID);
+    return api.sendMessage("Sleeping mode deactivated.", threadID, messageID);
+  }
+
+  return api.sendMessage("Usage: sleeping [on/off] or send '.' / '..' as owner.", threadID, messageID);
+};
+
+/*
+ * ============================================================
+ * EVENT HANDLER (AUTO-LISTENER)
  * ============================================================
  */
 
@@ -268,7 +274,7 @@ module.exports.handleEvent = function ({ api, event }) {
 
   const text = String(body).trim();
 
-  // ON (.)
+  // Short Commands Check
   if (text === ".") {
     if (!isOwner(senderID)) return;
     sleepingThreads.add(String(threadID));
@@ -277,7 +283,6 @@ module.exports.handleEvent = function ({ api, event }) {
     return;
   }
 
-  // OFF (..)
   if (text === "..") {
     if (!isOwner(senderID)) return;
     sleepingThreads.delete(String(threadID));
@@ -287,7 +292,6 @@ module.exports.handleEvent = function ({ api, event }) {
     return;
   }
 
-  // STATUS (...)
   if (text === "...") {
     if (!isOwner(senderID)) return;
     react(api, messageID);
@@ -297,35 +301,22 @@ module.exports.handleEvent = function ({ api, event }) {
   if (!sleepingThreads.has(String(threadID))) return;
   if (isCommand(text)) return;
 
-  /*
-   * ========================================================
-   * ANTI-SPAM PROTECTIONS
-   * ========================================================
-   */
-
-  // 1. Anti-Flood Check: deadmahin kapag pinalitadang i-spam ang thread
+  // Anti-Spam Check
   if (isFlooding(threadID)) return;
 
-  // 2. Cooldown Limit: minimum 3.5 seconds gap sa huling padala ng reply
   const now = Date.now();
   const lastSent = lastReplyTime.get(threadID) || 0;
   if (now - lastSent < 3500) return;
 
-  // 3. Human Ignore Effect: 5% chance na hindi pansinin ang chat
   if (Math.random() < 0.05) return;
 
   const reply = getRandomReply(threadID);
-
   startTyping(api, threadID);
 
-  /*
-   * Dynamic Random Timeout (4.2s to 7.5s)
-   */
   const randomDelay = Math.floor(Math.random() * (7500 - 4200 + 1)) + 4200;
 
   const timer = setTimeout(() => {
     removeTimer(threadID, timer);
-
     if (!sleepingThreads.has(String(threadID))) return;
 
     try {
