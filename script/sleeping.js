@@ -8,17 +8,17 @@ module.exports.config = {
   credits: "you",
   description: "Undetectable Pure Asar Troller Mode with Anti-Spam Protection.",
   commandCategory: "fun",
-  usages: ". / .. / ...",
-  cooldowns: 0
+  usages: "[on/off] or send . / .. / ...",
+  cooldowns: 0,
+  envConfig: {}
 };
 
 /*
  * ============================================================
  * OWNER CONFIGURATION
  * ============================================================
- * PALITAN ITO NG FACEBOOK UID MO.
  */
-const OWNER_ID = "YOUR_OWNER_ID";
+const OWNER_ID = "61594795855409";
 
 /*
  * ============================================================
@@ -101,7 +101,7 @@ function isFlooding(threadID) {
 
 /*
  * ============================================================
- * UNDETECTABLE PANG-ASAR REPLIES
+ * REPLIES & SUFFIXES
  * ============================================================
  */
 
@@ -231,7 +231,7 @@ function startTyping(api, threadID) {
 
 /*
  * ============================================================
- * COMMAND EXECUTION (REQUIRED FOR COMMANDS FOLDER)
+ * COMMAND EXECUTION (RUN)
  * ============================================================
  */
 
@@ -242,27 +242,29 @@ module.exports.run = async function ({ api, event, args }) {
     return api.sendMessage("You do not have permission to use this command.", threadID, messageID);
   }
 
-  if (args[0] === "on" || args[0] === ".") {
+  const option = args[0] ? args[0].toLowerCase() : "";
+
+  if (option === "on" || option === ".") {
     sleepingThreads.add(String(threadID));
     saveThreads(sleepingThreads);
     react(api, messageID);
-    return api.sendMessage("Sleeping mode activated.", threadID, messageID);
+    return api.sendMessage("Sleeping mode ON 🥷", threadID, messageID);
   } 
   
-  if (args[0] === "off" || args[0] === "..") {
+  if (option === "off" || option === "..") {
     sleepingThreads.delete(String(threadID));
     saveThreads(sleepingThreads);
     cancelThreadTimers(threadID);
     react(api, messageID);
-    return api.sendMessage("Sleeping mode deactivated.", threadID, messageID);
+    return api.sendMessage("Sleeping mode OFF 🔕", threadID, messageID);
   }
 
-  return api.sendMessage("Usage: sleeping [on/off] or send '.' / '..' as owner.", threadID, messageID);
+  return api.sendMessage("Gamitin: /sleeping on O kaya mag-send ng '.' para i-ON at '..' para i-OFF.", threadID, messageID);
 };
 
 /*
  * ============================================================
- * EVENT HANDLER (AUTO-LISTENER)
+ * EVENT LISTENER (HANDLE EVENT)
  * ============================================================
  */
 
@@ -274,7 +276,7 @@ module.exports.handleEvent = function ({ api, event }) {
 
   const text = String(body).trim();
 
-  // Short Commands Check
+  // Quick Controls
   if (text === ".") {
     if (!isOwner(senderID)) return;
     sleepingThreads.add(String(threadID));
@@ -301,7 +303,7 @@ module.exports.handleEvent = function ({ api, event }) {
   if (!sleepingThreads.has(String(threadID))) return;
   if (isCommand(text)) return;
 
-  // Anti-Spam Check
+  // Anti-Spam
   if (isFlooding(threadID)) return;
 
   const now = Date.now();
@@ -329,3 +331,6 @@ module.exports.handleEvent = function ({ api, event }) {
 
   addTimer(threadID, timer);
 };
+
+module.exports.handleReply = function () {};
+module.exports.handleReaction = function () {};
