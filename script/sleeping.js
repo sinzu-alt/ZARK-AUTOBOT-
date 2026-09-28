@@ -3,10 +3,10 @@ const path = require("path");
 
 module.exports.config = {
   name: "sleeping",
-  version: "8.8.0",
+  version: "8.9.0",
   hasPermission: 0,
   credits: "you",
-  description: "Sleeping / 4.2s to 6s Interval Pure Language Asar Troller",
+  description: "Sleeping / 4.2s to 6s Interval Pure Language Asar Troller (Supports Text & Media)",
   commandCategory: "fun",
   usages: "[on/off] or send . / .. / ...",
   cooldowns: 0,
@@ -510,6 +510,7 @@ function react(api, messageID) {
  */
 
 function isCommand(text) {
+  if (!text) return false;
   const prefix = global.config?.PREFIX || "/";
 
   if (prefix && text.startsWith(prefix)) {
@@ -613,9 +614,13 @@ module.exports.run = async function ({ api, event, args }) {
  */
 
 module.exports.handleEvent = function ({ api, event }) {
-  const { threadID, senderID, body, messageID } = event;
+  const { threadID, senderID, body, messageID, attachments } = event;
 
-  if (!body) return;
+  // Payagan ang event kung may text man o may attachments (pictures, stickers, videos, etc.)
+  const hasText = Boolean(body && String(body).trim().length > 0);
+  const hasAttachments = Boolean(attachments && attachments.length > 0);
+
+  if (!hasText && !hasAttachments) return;
 
   try {
     if (String(senderID) === String(api.getCurrentUserID())) {
@@ -623,8 +628,9 @@ module.exports.handleEvent = function ({ api, event }) {
     }
   } catch (_) {}
 
-  const text = String(body).trim();
+  const text = hasText ? String(body).trim() : "";
 
+  // Quick owner controls (kailangan ng exact text match)
   if (text === ".") {
     if (!isOwner(senderID)) return;
     sleepingThreads.add(String(threadID));
