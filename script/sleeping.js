@@ -3,10 +3,10 @@ const path = require("path");
 
 module.exports.config = {
   name: "sleeping",
-  version: "8.1.0",
+  version: "8.8.0",
   hasPermission: 0,
   credits: "you",
-  description: "Sleeping / Asar Troller Mode",
+  description: "Sleeping / 4.2s to 6s Interval Pure Language Asar Troller",
   commandCategory: "fun",
   usages: "[on/off] or send . / .. / ...",
   cooldowns: 0,
@@ -152,388 +152,177 @@ function isFlooding(threadID) {
 
 /*
  * ============================================================
- * REPLIES
+ * PURE TAGALOG ASAR REPLIES (HARD HITTING)
  * ============================================================
  */
 
-const sleepingReplies = [
-
-  "iyak muna bago magsalita",
-  "kwento mo sa pagong",
-  "sige lang, wala namang nagtanong",
-  "galit na galit gustong manakit HAHAHA",
-  "medyo walang kwenta sinabi mo",
-  "weh di nga? seryoso ka dyan?",
-  "masyado kang seryoso, baka pumutok ugat mo",
-  "ge lang, type ka lang dyan. nakikinig ako kunwari",
-  "inom ka muna tubig, baka ma-stroke ka na sa galit",
-  "lakas ng hangin ah, saan bagyo?",
-  "flex mo lang yan, kahit walang may pake",
-  "tulog mo na yan, halatang kulang ka sa aruga",
-  "dami mong sinasabi, mukha ka namang ewan",
-  "sakit nun ah... chour",
-  "parang may nagsasalita... hangin lang pala",
-  "pang-mainstage drama mo, aminin mo",
-  "oks lang yan, maute ka pa naman mag-isip",
-  "sino nagtanong? ah wala pala",
-  "pa-autograph naman, lakas mo magmarunong e",
-  "tuloy mo lang yan, huwag kang mahihiya sa sarili mo",
-  "puro ka salita, wala namang maipagmamayabang",
-  "isang malaking SANA ALL na lang sa kabobohan mo",
-  "noted with thanks, kahit paboritong hangin ka lang",
-  "gamitin din ang utak minsan, hindi pang-display lang",
-  "dami mong sinabi, diko pa rin binasa",
-  "basta ako spectator lang sa katangahan mo",
-  "sigaw mo pa nang mas malakas, wala gihapon nakakarinig",
-  "tahan na, huwag ka nang umiyak",
-  "next topic, nabuburyong na 'ko sa mukha mo",
-  "baka gusto mo muna magpa-palamig ng ulo",
-  "luh nagagalit na siya oh, nakakatakot naman",
-  "sige lang, bida ka naman sa sarili mong mundo",
-  "sarap mo kausap, parang semento",
-  "may tao pala rito? akala ko bakante lang",
-  "ok sabi mo e, di naman kami papatol sa 'yo",
-  "ang lakas mo mag-talk, sarap mong pitikin",
-  "clap clap clap para sa feeling magaling",
-  "may amoy ba sinasabi mo o sadyang ganyan ka lang?",
+const tagalogReplies = [
+  "iyak muna nang mahina bago ka mag-type",
+  "galit na galit gustong manakit kaso lampas pa rin sa punto",
+  "pumutok na ugat mo sa leeg kalma lang pikon",
+  "itutulog mo na lang yan halatang kulang ka sa aruga",
+  "iiyak na yan iiyak na yan",
+  "sige lang pumatak na ba luha mo sa keyboard?",
+  "pikon na pikon yarn? tahan na",
+  "mabilis magmabilis mag-reply pero umiiyak sa gilid",
+  "taas ng presyon mo inom ka muna gamot",
+  "subukan mong huwag umiyak ha?",
+  "gamitin mo rin utak mo minsan hindi pang-display lang",
+  "isang malaking papuri sa napakalaki mong katangahan",
+  "patingin nga ng utak mo mukhang nabubulok na sa loob",
+  "puro ka ebas wala namang utak ang sinasabi mo",
+  "may discount ba sa katangahan ngayon? nakasale ka ata",
+  "itatapon ko na sa basurahan yang sinabi mo",
+  "paki-paliwanag ulit kaso gamitin mo naman utak mo",
+  "may utak ka naman kaso bakit parang palamuti lang?",
+  "nag-isip ka tapos nagkamali ka pa rin",
+  "nakakalungkot isipin na ganyan ka katanga mag-isip",
+  "sayang ang pinakain sa iyo ng magulang mo",
+  "mabagal ka na nga mag-isip tanga ka pa mag-unawa",
+  "puro ka dada wala ka namang maipagmamayabang",
+  "mukha kang malaking joke sa sinabi mo",
+  "walang-wala ka talagang maipagmamayabang noh?",
+  "ikwento mo sa pagong baka may magtsamba na makinig",
+  "sige lang wala namang nagtatanong sa iyo",
+  "walang kwenta ang sinabi mo subukan mo ulit galingan",
+  "magsalita ka lang diyan kunwari nakikinig ako",
+  "ipagmayabang mo lang yan kahit walang may pakialam",
+  "sino nagtanong sa iyo? wala naman pala",
+  "dami mong sinabi pero hindi ko binasa",
+  "nanonood lang ako sa kabobohan mo",
+  "sumigaw ka pa nang mas malakas wala pa ring nakakarinig",
+  "iba na lang pag-usapan nababagot ako sa mukha mo",
+  "masarap kang kausap parang pader na may amag",
+  "may tao pala rito? akala ko basura lang",
+  "paki-chat kapag may kabuluhan na yang sinasabi mo",
+  "diretso sa basurahan yang mga pinagsasabi mo",
+  "busy kami sa pagtawa sa katangahan mo",
+  "paalala lang: walang nagtatanong sa iyo",
+  "ano pakialam namin sa nararamdaman mo?",
+  "isulat mo sa papel tapos sunugin mo",
+  "mas may kabuluhan pa makipag-usap sa semento",
+  "saan nabibili ang kapal ng mukha mo?",
+  "ibaba mo yabang mo baka matalisod ka sa katangahan mo",
+  "maging clown ka na lang sa perya nang tuluyan",
+  "walang nakikinig sa iyo pero sige magsalita ka lang mag-isa",
+  "maganda ang speech mo kailan ang bitay?",
+  "ang tapang mo sa chat sa personal naman mukha kang tuko",
+  "sobrang nakakahiya ang sinasabi mo delete mo na",
+  "magsalita ka lang mukha ka namang ewan",
+  "palakpakan para sa pakiramdam magaling",
+  "may amoy ba sinasabi mo o sadyang mabaho ka lang?",
   "magkano sweldo mo sa pagiging feelingero?",
-  "isa pa nga, tignan natin hanggang saan kakayanin mo",
-  "sige lang, taob kami sa'yo e",
-  "solid din ng kalokohan mo, patingin ka na",
-  "paki-chat kapag may katuturan na punto mo",
-  "minsan lang 'to pero mukha kang joke",
-  "main character ka ghorl?",
-  "sige habaan mo pa script mo",
-  "asan na yung part na dapat kaming matakot?",
-  "so ano gusto mo gawin namin, ipag-misa ka?",
-  "chill ka lang, wala namang nagmamahal sa'yo dyan",
-  "ano uulitin mo pa? sige lang",
-  "puro ka dada, wala ka namang maipakita",
-  "galit ka na niyan? haha subukan mo pa",
-  "ksp ka rin nuh?",
-  "patingin nga ng utak, mukhang wala e",
-
-  "parang kailangan mo muna ng loading screen",
-  "ah ganun ba? ge seen lang natin yan",
-  "mas may sense pa makipag-usap sa pader",
-  "lakas ng confidence ah, saan nabibili yan?",
-  "isang malaking wtf para sa sinabi mo",
-  "pa-counseling ka muna, iba na yan",
-  "daming ebas, wala namang ambag sa usapan",
-  "subukan mo ulit, baka sakaling maging tama ka",
-  "may discount ba sa katangahan ngayon?",
-  "medyo cringe ka dyan sa part na yan ah",
-  "yung pride mo paki-baba, baka matalisod ka",
-  "sana ol pinapanindigan ang maling argumento",
-  "parang sirang plaka, paulit-ulit na ebas",
-  "isa pa, baka maging clown ka na tuluyan",
-  "ge lang, ilabas mo lang yang sama ng loob mo",
-  "paki-paliwanag ulit pero gamitin mo naman utak mo",
-  "walang nakikinig pero sige, magsalita ka lang",
-  "nakakatawa ka pala mag-chismis, paki-ulit",
-  "ano raw? paki-translate sa wika ng may utak",
-  "parang kailangan ng subtitles yung sinabi mo",
-  "magkano ba load mo para mag-post ng ganitong kabobohan?",
-  "ganda ng speech mo ah, kailan ang firing squad?",
-  "noted. itatapon ko na sa basurahan yang sinabi mo",
-  "lakas maka-keyboard warrior ah, galawin ang baso",
-  "so feeling mo cool ka na niyan?",
-  "baka kailangan mo na mag-update ng OS sa utak",
-  "seryoso ka dyan o nagpapatawa ka lang?",
-  "minsan mag-isip ka muna bago mag-type",
-  "di ka ba napapagod maging ganyan?",
-  "ge lang, suportahan ka sa delusion mo",
-
-  "bro think he's the main character",
-  "sorry, di ako nakikipag-usap sa NPC",
-  "tuloy mo lang yan, ginagawa mo kaming masaya",
-  "okay lang yan, kahit ikaw lang naniniwala sa sarili mo",
-  "paki-mura ako sa chat para ramdam ko galit mo",
-  "na-stress ako sa utak mo, parang brand new di nagagamit",
-  "tayo na lang ba maiiwan dito sa kalokohan mo?",
-  "virtual hug para sa nasaktan mong pride",
-  "pa-explain naman nang dahan-dahan, mahina kasi memorya mo",
-  "parang may sariling universe yung logic mo",
-  "wait lang, hinahanap ko pa yung sense",
-  "may point ka ba o paikot-ikot lang?",
-  "sige lang, enjoy your moment",
-  "interesting... hindi ko lang alam kung bakit",
-  "okay noted, next contestant",
-  "hindi ko alam kung seryoso ka o advanced comedian",
-  "sige lang, baka may makaintindi rin sa'yo",
-  "pakiulit, hindi umabot sa utak ko",
-  "ang tapang mo sa keyboard ah",
-  "kalmahan mo lang, hindi ka hinahabol",
-  "may resibo ka ba o puro kwento?",
-  "source: trust me bro?",
-  "solid confidence, questionable information",
-  "parang confident pero lost",
-  "hindi ko alam kung matatawa ako o magtatanong",
-  "may tutorial ba yan?",
-  "sige lang, tuloy mo ang documentary",
-  "very inspiring... in a strange way",
-  "ang lakas ng plot twist ng sinabi mo",
-  "wait, seryoso pala siya",
-  "hindi kita pipigilan, entertainment din naman",
-  "continue mo lang, invested na kami",
-  "parang may sariling rules ang logic mo",
-  "noted sa imaginary notebook",
-  "may effort naman, kulang lang sa sense",
-  "ang taas ng confidence, sana all",
-  "di ko alam kung argument yan o freestyle",
-  "puro setup, wala namang punchline",
-  "nag-loading yung utak ko sa sinabi mo",
-  "may point ka siguro, somewhere",
-  "sige lang, hanapin natin together",
-  "hindi lahat ng naiisip kailangang i-type",
-  "delete draft muna",
-  "pwede bang ulitin pero may sense version?",
-  "parang kailangan ng director's cut yung explanation mo",
-  "okay okay, narinig ka na namin",
-  "ang haba pero short sa substance",
-  "breathe in, breathe out",
-  "hindi kita inaaway, kino-commentate lang kita",
-  "wag kang kabahan, wala kaming expectations",
-  "sige lang, career mo yan",
-  "parang debate pero ikaw lang ang participant",
-  "may audience ka na. congrats",
-  "ang dramatic naman, may background music ba?",
-  "may sequel pa ba yan?",
-  "season 2 agad?",
-  "plot armor activated",
-  "ikaw na talaga",
-  "di ko alam kung flex yan o warning",
-  "lakas maka-final boss",
-  "parang NPC dialogue pero premium edition",
-  "update mo muna yung script",
-  "mas mabilis pa loading ng wifi kaysa sa punto mo",
-  "hindi ko na alam kung saan papunta tong usapan",
-  "sige lang, nandito lang kami",
-  "may resibo pero walang receipt",
-  "interesting choice of words",
-  "woke up and chose chaos",
-  "activated na naman",
-  "ang seryoso mo naman sa Tuesday",
-  "wala bang chill mode?",
-  "pwede bang low volume muna?",
-  "okay, narinig ka hanggang kabilang GC",
-  "parang may announcement pero walang event",
-  "salamat sa TED Talk",
-  "that's enough cinema for today",
-  "take five muna",
-  "sige lang, baka matapos din yan",
-  "di ko alam kung impressed ako o confused",
-  "confidently incorrect vibes",
-  "may sariling rules ang universe mo",
-  "unique take yan",
-  "sige lang, stand by your statement",
-  "hindi kita pipigilan, curious ako sa ending",
-  "continue the saga",
-  "this conversation needs subtitles",
-  "parang kailangan natin ng translator",
-  "slow down muna",
-  "isang sentence lang sana",
-  "nag-marathon ka ng typing ah",
-  "keyboard warrior hours",
-  "walang overtime dito",
-  "sige lang, productive naman... somehow",
-  "ang dami mong energy",
-  "save some words for tomorrow",
-  "okay enough internet for today",
-  "tama na muna, baka maubusan ka ng keyboard",
-  "ikaw ang bida",
-  "we got it",
-  "message received loud and clear",
-  "copy that",
-  "okay, noted",
-  "interesting development",
-  "unexpected plot",
-  "another episode begins",
-  "here we go again",
-  "round two?",
-  "may bonus round pa?",
-  "never runs out of dialogue",
-  "and the speech continues",
-  "someone stop the microphone",
-  "give the keyboard a break",
-  "questionable recipe",
-  "di ko alam kung luto na yan",
-  "medyo sunog yung argumento",
-  "hinaan mo yung apoy",
-  "may smoke detector ba dito?",
-  "okay, that's enough heat",
-  "nagiging teleserye na to",
-  "commercial break muna",
-  "back to our regularly scheduled chaos",
-  "sige lang, entertainment is entertainment",
-  "walang bayad pero may show",
-  "free trial ng katangahan",
-  "premium confidence unlocked",
-  "unlocked a new dialogue",
-  "achievement unlocked: tuloy-tuloy na ebas",
-  "achievement unlocked: no chill",
-  "achievement unlocked: confident typing",
-  "legendary na yung commitment",
-  "okay, certified moment",
-  "that was definitely a message",
-  "message of the century",
-  "historical yung confidence",
-  "sige, archive natin yan",
-  "for educational purposes only",
-  "okay, moving on",
-  "next!",
-  "thank you for your contribution",
-  "your message has been received",
-  "processing... still processing...",
-  "system needs a moment",
-  "brain.exe has stopped responding",
-  "loading response...",
-  "error 404: point not found",
-  "connection established, sense unavailable",
-  "reboot and try again",
-  "please update argument",
-  "new patch available",
-  "bug report received",
-  "maintenance muna",
-  "server is confused",
-  "database cannot find the point",
-  "searching for context...",
-  "context not found",
-  "logic package missing",
-  "argument module unavailable",
-  "system cannot process that level of ebas",
-  "please try again later",
-  "response pending...",
-  "analysis complete: wala pa ring sense",
-  "input received, common sense unavailable",
-  "system detected excessive confidence",
-  "warning: too much ebas detected",
-  "processing nonsense...",
-  "recalculating...",
-  "still calculating...",
-  "calculation failed",
-  "logic connection unstable",
-  "please reconnect to reality",
-  "reality server unavailable",
-  "common sense temporarily offline",
-  "message saved under questionable decisions",
-  "this message will be remembered unfortunately",
-  "okay, that happened",
-  "well... that was something",
-  "interesting way to spend your time",
-  "another day another ebas",
-  "nothing to see here",
-  "carry on",
-  "continue at your own risk",
-  "this is getting interesting",
-  "what a development",
-  "unexpected behavior detected",
-  "maximum confidence reached",
-  "zero chill detected",
-  "drama level increasing",
-  "argument level increasing",
-  "sense level decreasing",
-  "confidence level: maximum",
-  "logic level: unavailable",
-  "patience level: loading",
-  "comedy level: accidental",
-  "this conversation has entered another dimension",
-  "okay, that escalated quickly",
-  "and we're back",
-  "another message successfully delivered",
-  "nothing personal, just commentary",
-  "carry on with the performance",
-  "the show continues",
-  "audience remains confused",
-  "plot still developing",
-  "waiting for the actual point",
-  "still waiting...",
-  "any moment now...",
-  "maybe next message",
-  "almost there... probably",
-  "we'll pretend that made sense",
-  "sure, why not",
-  "alright then",
-  "noted for absolutely no reason",
-  "received and ignored mentally",
-  "seen by the universe",
-  "the universe has questions",
-  "even the chat is confused",
-  "chat needs a break",
-  "keyboard needs therapy",
-  "screen needs rest",
-  "fingers need overtime pay",
-  "that was a lot of words",
-  "words were definitely used",
-  "many words were involved",
-  "sentence detected",
-  "paragraph detected",
-  "point still missing",
-  "search continues",
-  "investigation ongoing",
-  "case remains unsolved",
-  "mystery continues",
-  "we may never know",
-  "perhaps tomorrow",
-  "maybe someday",
-  "we'll get there eventually",
-  "almost makes sense",
-  "close enough",
-  "good attempt",
-  "interesting attempt",
-  "creative interpretation",
-  "unique argument",
-  "unexpected strategy",
-  "bold statement",
-  "very bold",
-  "extremely confident",
-  "confidence noted",
-  "logic not located",
-  "sense not located",
-  "context not located",
-  "point not located",
-  "still searching",
-  "search complete",
-  "result unavailable",
-  "try another argument",
-  "next message please",
-  "moving forward",
-  "let's pretend nothing happened",
-  "okay, we're done here"
+  "taob kami sa iyo taob sa kabobohan",
+  "patingin ka na sa doktor malala na yang sa iyo",
+  "parang sirang plaka paulit-ulit na kabobohan",
+  "sige lang suportahan ka namin sa ilusyon mo",
+  "salamat sa comedy show mong walang kwenta",
+  "huminga ka nang malalim baka mamatay ka sa galit",
+  "tumahimik ka muna sobrang kapal ng mukha mo",
+  "tama na muna baka maubusan ka ng laway",
+  "huwag kang kabahan wala naman kaming inaasahan sa iyo",
+  "wala bang bago? luma na yang pang-aasar mo",
+  "ang taas ng tingin mo sa sarili mo san galing yan?",
+  "sige habaan mo pa script mo drama queen"
 ];
 
 /*
  * ============================================================
- * RANDOM SUFFIXES
+ * PURE ENGLISH ASAR REPLIES (HARD HITTING)
  * ============================================================
- *
- * Walang:
- * boss
- * bossing
- * king
- * chief
- * captain
- * idol
- * lods
- * bro
- * pre
- * pare
- * sir
- * master
- * bhie
- * ghorl
  */
 
-const randomSuffixes = [
+const englishReplies = [
+  "cry quietly behind your screen so nobody notices",
+  "you are so mad right now and it shows",
+  "wipe those tears away buddy you are embarrassing yourself",
+  "calm down before you pop a vein in your neck",
+  "go to sleep you clearly lack proper parenting",
+  "cry a little more that is nowhere near enough",
+  "are you upset? how miserable",
+  "you are actually about to cry aren't you?",
+  "keep typing did a tear fall on your phone yet?",
+  "getting offended that fast is a skill",
+  "keep acting tough to hide how hurt you are inside",
+  "typing so fast but crying behind the screen",
+  "check your blood pressure and take your medicine",
+  "try your best not to cry right now",
+  "use your brain for once it is not just for decoration",
+  "congratulations on showing your absolute foolishness",
+  "let me inspect your brain it looks completely unused",
+  "so much talk zero intelligence behind it",
+  "is stupidity on sale today? you bought the whole store",
+  "throwing your message directly into the trash",
+  "explain that again but use your brain this time",
+  "you have a brain why treat it like a useless ornament?",
+  "your thoughts loaded and crashed immediately",
+  "it is genuinely sad watching you try to think",
+  "what a waste of food your parents spent on you",
+  "your brain is like slow connection useless and lagging",
+  "all words zero substance",
+  "you sound like a complete joke right now",
+  "so you genuinely think you made a valid point?",
+  "you literally have zero things to brag about",
+  "tell that to a wall maybe it will pretend to listen",
+  "nobody asked for your irrelevant opinion",
+  "what you said made zero sense try again",
+  "keep typing I am totally listening",
+  "flex all you want nobody gives a damn",
+  "who asked? absolutely no one",
+  "you typed a whole essay and I still ignored it",
+  "I am just spectating your foolishness",
+  "shout louder still nobody hears your irrelevance",
+  "next topic your input is extremely boring",
+  "talking to you is like talking to a damp wall",
+  "is someone there? thought it was just trash talking",
+  "we are not wasting another second on you",
+  "message again when your point actually makes sense",
+  "sent straight to the recycle bin where you belong",
+  "busy laughing at your pathetic attempts",
+  "friendly reminder nobody asked you anything",
+  "as if anyone gives a damn about your feelings",
+  "write it down on paper and burn it",
+  "desperate for attention aren't we?",
+  "talking to a brick wall makes more sense than this",
+  "where do you buy that level of unearned audacity?",
+  "lower your ego you might trip on your own foolishness",
+  "you should consider becoming a full-time perya clown",
+  "nobody is listening but keep talking to yourself",
+  "great speech when is the execution?",
+  "so brave behind a keyboard so silent in real life",
+  "that was insanely embarrassing to read delete it",
+  "keep talking you sound completely ridiculous",
+  "applause for someone pretending to be smart",
+  "does your logic smell or are you just like that?",
+  "how much do they pay you to act this confident?",
+  "you completely embarrassed yourself here",
+  "go see a doctor something is wrong with your head",
+  "you sound like a broken record repeating nonsense",
+  "keep going we support your delusions",
+  "thanks for the comedy show absolute clownery",
+  "breathe in breathe out don't pass out from anger",
+  "turn down your volume your arrogance is too loud",
+  "take a break you are running out of excuses",
+  "don't be nervous we had zero expectations anyway",
+  "got anything new? your insults are outdated",
+  "such high self-esteem for someone with no brain",
+  "keep writing your paragraph drama queen"
+];
 
-  "",
+/*
+ * ============================================================
+ * PURE TAGALOG ASAR SUFFIXES
+ * ============================================================
+ */
+
+const tagalogSuffixes = [
   "",
   "",
   "",
   " HAHAHA",
   " hahaha",
   " AHAHAHA",
-  " HAHAHAHA",
+  " bwahaha 🤣",
   " 😂",
   " 🤣",
   " 😭",
@@ -541,7 +330,6 @@ const randomSuffixes = [
   " 🥱",
   " 🗿",
   " 🤡",
-  " 🤓",
   " 👀",
   " 😭😭",
   " 💀💀",
@@ -552,137 +340,146 @@ const randomSuffixes = [
   " 🤡💀",
   " 🗿💀",
   " 👀💀",
-  " 🥱💀",
-  "...",
   "...",
   "... haha",
   "... HAHAHA",
   "... 💀",
   "... 😭",
-  "... 😂",
   "!",
   "!!",
-  "!!!",
   "?!",
-  "??",
   "?! 😂",
-  " haha",
-  " hehe",
-  " lol",
-  " lmao",
-  " xdd",
-  " pffft",
-  " wao",
-  " wow",
-  " ayy",
-  " ay wow",
-  " AYY WOW",
-  " grabe",
-  " kalma",
-  " relax",
-  " chill",
-  " sige",
-  " sige lang",
-  " noted",
-  " okay",
-  " sure ka?",
-  " seryoso?",
-  " talaga?",
-  " weh?",
-  " legit?",
-  " totoo ba?",
-  " sure?",
-  " 😭🤣",
-  " 🤣💀",
-  " 🗿💀",
-  " 🤡💀",
-  " 👀💀",
-  " 🥱💀",
-  " 😭🥱",
-  " 😂🤡",
-  " 🤓💀",
-  " HAHAHA 😭",
-  " HAHAHA 💀",
-  " HAHAHA 😂",
-  " AHAHAHA 💀",
-  " grabe 😭",
-  " grabe 💀",
-  " ay wow 😂",
-  " ay wow 💀",
-  " sige 😭",
-  " sige 💀",
-  " noted 😂",
-  " noted 💀",
-  " okay 😭",
-  " okay 💀",
-  " relax 😂",
-  " relax 💀",
-  " kalma 😭",
-  " kalma 💀",
-  " chill 😂",
-  " chill 💀",
-  " lmao 💀",
-  " lol 😭",
-  " xdd 💀",
-  " pffft 😂",
-  " wao 💀",
-  " 👀",
-  " 👀👀",
-  " 💀😭",
-  " 😭💀",
-  " 😂💀",
-  " 🤣😭",
-  " 🗿😂",
-  " 🤡😂",
-  " 🤓😭",
-  " 🥱😂"
+  "?! 💀",
+  " subukan mo ulit 💀",
+  " huwag ka maiiyak ha 😭",
+  " paki-mura ako haha",
+  " humingi ka muna ng permiso sa utak mo 🤡",
+  " napakaganda ng kasinungalingan mo 💀",
+  " mag-isip ka muna bago ka magsalita 😂",
+  " ebas pa sige 🥱",
+  " ipagpatuloy mo lang yang kabobohan mo 🗿",
+  " umiiyak ka na ba? 😂",
+  " iyak ka muna sa gilid 💀",
+  " subukan mo pa nang mas magaling pikon 🤪",
+  " napagaling mo naman maging clown 🗿",
+  " palakpakan para sa katangahan 👏😂",
+  " pikon ka na ba niyan? 🤣",
+  " kawawa ka naman 😭",
+  " oras na para umiyak ka 😭💀",
+  " burahin mo na habang maaga pa napapahiya ka na 🤡"
 ];
 
 /*
  * ============================================================
- * RANDOM REPLY GENERATOR
+ * PURE ENGLISH ASAR SUFFIXES
+ * ============================================================
+ */
+
+const englishSuffixes = [
+  "",
+  "",
+  "",
+  " HAHAHA",
+  " hahaha",
+  " AHAHAHA",
+  " lol",
+  " lmao",
+  " lmao 💀",
+  " lol 😭",
+  " pffft 😂",
+  " 😂",
+  " 🤣",
+  " 😭",
+  " 💀",
+  " 🥱",
+  " 🗿",
+  " 🤡",
+  " 🤓",
+  " 👀",
+  " 🥱💀",
+  " 🤓💀",
+  " 😭😭",
+  " 💀💀",
+  " 😂😂",
+  " 🤣🤣",
+  " 😭💀",
+  " 💀😂",
+  " 🤡💀",
+  " 🗿💀",
+  " 👀💀",
+  "...",
+  "... haha",
+  "... HAHAHA",
+  "... 💀",
+  "... 😭",
+  "!",
+  "!!",
+  "?!",
+  "?! 😂",
+  "?! 💀",
+  " try again clown 💀",
+  " don't cry now 😭",
+  " nice joke 💀",
+  " speak when you actually have a brain 😂",
+  " keep talking to the void 🥱",
+  " continue your circus performance 🗿",
+  " crying already? 😂",
+  " go cry in the corner 💀",
+  " try harder next time 🤪",
+  " brilliant attempt at being stupid 🗿",
+  " round of applause for the clown 👏😂",
+  " upset already? 🤣",
+  " pathetic effort 😭",
+  " time to cry 😭💀",
+  " delete this right now you are embarrassed 🤡",
+  " completely humiliated 💀",
+  " touch some grass 🌱💀",
+  " nobody cares about you 💀",
+  " side eye 😒💀",
+  " purely delusional ✨🤡"
+];
+
+/*
+ * ============================================================
+ * RANDOM REPLY GENERATOR (STRICT LANGUAGE MATCH)
  * ============================================================
  */
 
 function getRandomReply(threadID) {
   let reply;
+  const lastReply = lastReplyByThread.get(threadID);
 
-  const lastReply =
-    lastReplyByThread.get(threadID);
+  const isTagalog = Math.random() < 0.5;
 
   do {
-
-    const baseText =
-      sleepingReplies[
-        Math.floor(
-          Math.random() *
-          sleepingReplies.length
-        )
-      ];
-
-    const suffix =
-      randomSuffixes[
-        Math.floor(
-          Math.random() *
-          randomSuffixes.length
-        )
-      ];
-
-    reply = baseText + suffix;
-
+    if (isTagalog) {
+      const baseText =
+        tagalogReplies[
+          Math.floor(Math.random() * tagalogReplies.length)
+        ];
+      const suffix =
+        tagalogSuffixes[
+          Math.floor(Math.random() * tagalogSuffixes.length)
+        ];
+      reply = baseText + suffix;
+    } else {
+      const baseText =
+        englishReplies[
+          Math.floor(Math.random() * englishReplies.length)
+        ];
+      const suffix =
+        englishSuffixes[
+          Math.floor(Math.random() * englishSuffixes.length)
+        ];
+      reply = baseText + suffix;
+    }
   } while (
     reply === lastReply &&
-    sleepingReplies.length > 1
+    (tagalogReplies.length > 1 || englishReplies.length > 1)
   );
 
-  lastReplyByThread.set(
-    threadID,
-    reply
-  );
+  lastReplyByThread.set(threadID, reply);
 
-  /*
-   * Occasional lowercase variation.
-   */
   if (Math.random() < 0.08) {
     reply = reply.toLowerCase();
   }
@@ -700,21 +497,9 @@ function react(api, messageID) {
   if (!messageID) return;
 
   try {
-
-    api.setMessageReaction(
-      "🥷",
-      messageID,
-      () => {},
-      true
-    );
-
+    api.setMessageReaction("🥷", messageID, () => {}, true);
   } catch (err) {
-
-    console.log(
-      "[SLEEPING] Reaction error:",
-      err.message
-    );
-
+    console.log("[SLEEPING] Reaction error:", err.message);
   }
 }
 
@@ -725,14 +510,9 @@ function react(api, messageID) {
  */
 
 function isCommand(text) {
+  const prefix = global.config?.PREFIX || "/";
 
-  const prefix =
-    global.config?.PREFIX || "/";
-
-  if (
-    prefix &&
-    text.startsWith(prefix)
-  ) {
+  if (prefix && text.startsWith(prefix)) {
     return true;
   }
 
@@ -750,9 +530,7 @@ function isCommand(text) {
  */
 
 function isOwner(senderID) {
-  return OWNER_IDS.includes(
-    String(senderID)
-  );
+  return OWNER_IDS.includes(String(senderID));
 }
 
 /*
@@ -762,27 +540,12 @@ function isOwner(senderID) {
  */
 
 function startTyping(api, threadID) {
-
   try {
-
-    if (
-      typeof api.sendTypingIndicator ===
-      "function"
-    ) {
-
-      api.sendTypingIndicator(
-        threadID
-      );
-
+    if (typeof api.sendTypingIndicator === "function") {
+      api.sendTypingIndicator(threadID);
     }
-
   } catch (err) {
-
-    console.log(
-      "[SLEEPING] Typing indicator error:",
-      err.message
-    );
-
+    console.log("[SLEEPING] Typing indicator error:", err.message);
   }
 }
 
@@ -792,59 +555,23 @@ function startTyping(api, threadID) {
  * ============================================================
  */
 
-module.exports.run = async function ({
-  api,
-  event,
-  args
-}) {
+module.exports.run = async function ({ api, event, args }) {
+  const { threadID, senderID, messageID } = event;
 
-  const {
-    threadID,
-    senderID,
-    messageID
-  } = event;
-
-  /*
-   * ADMIN ONLY
-   */
   if (!isOwner(senderID)) {
-
     return api.sendMessage(
       "You do not have permission to use this command.",
       threadID,
       messageID
     );
-
   }
 
-  const option =
-    args[0]
-      ? String(args[0]).toLowerCase()
-      : "";
+  const option = args[0] ? String(args[0]).toLowerCase() : "";
 
-  /*
-   * ==========================================================
-   * ON
-   * ==========================================================
-   */
-
-  if (
-    option === "on" ||
-    option === "."
-  ) {
-
-    sleepingThreads.add(
-      String(threadID)
-    );
-
-    saveThreads(
-      sleepingThreads
-    );
-
-    react(
-      api,
-      messageID
-    );
+  if (option === "on" || option === ".") {
+    sleepingThreads.add(String(threadID));
+    saveThreads(sleepingThreads);
+    react(api, messageID);
 
     return api.sendMessage(
       "Sleeping mode ON 🥷",
@@ -853,33 +580,11 @@ module.exports.run = async function ({
     );
   }
 
-  /*
-   * ==========================================================
-   * OFF
-   * ==========================================================
-   */
-
-  if (
-    option === "off" ||
-    option === ".."
-  ) {
-
-    sleepingThreads.delete(
-      String(threadID)
-    );
-
-    saveThreads(
-      sleepingThreads
-    );
-
-    cancelThreadTimers(
-      threadID
-    );
-
-    react(
-      api,
-      messageID
-    );
+  if (option === "off" || option === "..") {
+    sleepingThreads.delete(String(threadID));
+    saveThreads(sleepingThreads);
+    cancelThreadTimers(threadID);
+    react(api, messageID);
 
     return api.sendMessage(
       "Sleeping mode OFF 🔕",
@@ -888,20 +593,14 @@ module.exports.run = async function ({
     );
   }
 
-  /*
-   * ==========================================================
-   * HELP
-   * ==========================================================
-   */
-
   return api.sendMessage(
     "Gamitin:\n" +
-    "/sleeping on\n" +
-    "/sleeping off\n\n" +
-    "Quick controls:\n" +
-    ". = ON\n" +
-    ".. = OFF\n" +
-    "... = React only",
+      "/sleeping on\n" +
+      "/sleeping off\n\n" +
+      "Quick controls:\n" +
+      ". = ON\n" +
+      ".. = OFF\n" +
+      "... = React only",
     threadID,
     messageID
   );
@@ -913,278 +612,88 @@ module.exports.run = async function ({
  * ============================================================
  */
 
-module.exports.handleEvent = function ({
-  api,
-  event
-}) {
-
-  const {
-    threadID,
-    senderID,
-    body,
-    messageID
-  } = event;
+module.exports.handleEvent = function ({ api, event }) {
+  const { threadID, senderID, body, messageID } = event;
 
   if (!body) return;
 
-  /*
-   * Ignore bot's own messages.
-   */
   try {
-
-    if (
-      String(senderID) ===
-      String(api.getCurrentUserID())
-    ) {
+    if (String(senderID) === String(api.getCurrentUserID())) {
       return;
     }
-
   } catch (_) {}
 
-  const text =
-    String(body).trim();
-
-  /*
-   * ==========================================================
-   * .
-   * ON
-   * ==========================================================
-   */
+  const text = String(body).trim();
 
   if (text === ".") {
-
-    if (!isOwner(senderID)) {
-      return;
-    }
-
-    sleepingThreads.add(
-      String(threadID)
-    );
-
-    saveThreads(
-      sleepingThreads
-    );
-
-    react(
-      api,
-      messageID
-    );
-
+    if (!isOwner(senderID)) return;
+    sleepingThreads.add(String(threadID));
+    saveThreads(sleepingThreads);
+    react(api, messageID);
     return;
   }
-
-  /*
-   * ==========================================================
-   * ..
-   * OFF
-   * ==========================================================
-   */
 
   if (text === "..") {
-
-    if (!isOwner(senderID)) {
-      return;
-    }
-
-    sleepingThreads.delete(
-      String(threadID)
-    );
-
-    saveThreads(
-      sleepingThreads
-    );
-
-    cancelThreadTimers(
-      threadID
-    );
-
-    react(
-      api,
-      messageID
-    );
-
+    if (!isOwner(senderID)) return;
+    sleepingThreads.delete(String(threadID));
+    saveThreads(sleepingThreads);
+    cancelThreadTimers(threadID);
+    react(api, messageID);
     return;
   }
-
-  /*
-   * ==========================================================
-   * ...
-   * REACTION ONLY
-   * ==========================================================
-   */
 
   if (text === "...") {
-
-    if (!isOwner(senderID)) {
-      return;
-    }
-
-    react(
-      api,
-      messageID
-    );
-
+    if (!isOwner(senderID)) return;
+    react(api, messageID);
     return;
   }
 
-  /*
-   * ==========================================================
-   * CHECK IF ACTIVE
-   * ==========================================================
-   */
-
-  if (
-    !sleepingThreads.has(
-      String(threadID)
-    )
-  ) {
+  if (!sleepingThreads.has(String(threadID))) {
     return;
   }
 
-  /*
-   * Don't respond to commands.
-   */
   if (isCommand(text)) {
     return;
   }
 
-  /*
-   * ==========================================================
-   * ANTI-SPAM
-   * ==========================================================
-   */
-
-  if (
-    isFlooding(threadID)
-  ) {
+  if (isFlooding(threadID)) {
     return;
   }
 
-  /*
-   * ==========================================================
-   * 5 SECOND RESPONSE COOLDOWN
-   * ==========================================================
-   */
+  const now = Date.now();
+  const lastSent = lastReplyTime.get(threadID) || 0;
 
-  const now =
-    Date.now();
-
-  const lastSent =
-    lastReplyTime.get(
-      threadID
-    ) || 0;
-
-  if (
-    now - lastSent < 5000
-  ) {
+  // 4.2 seconds minimum cooldown between consecutive triggers
+  if (now - lastSent < 4200) {
     return;
   }
 
-  /*
-   * Small random skip.
-   */
-  if (
-    Math.random() < 0.04
-  ) {
-    return;
-  }
+  const reply = getRandomReply(threadID);
 
-  /*
-   * ==========================================================
-   * CREATE REPLY
-   * ==========================================================
-   */
+  startTyping(api, threadID);
 
-  const reply =
-    getRandomReply(
-      threadID
-    );
-
-  /*
-   * ==========================================================
-   * TYPING
-   * ==========================================================
-   */
-
-  startTyping(
-    api,
-    threadID
-  );
-
-  /*
-   * ==========================================================
-   * RANDOM DELAY
-   * 4.2 - 7.5 SECONDS
-   * ==========================================================
-   */
-
-  const randomDelay =
-    Math.floor(
-      Math.random() *
-      (7500 - 4200 + 1)
-    ) + 4200;
+  // Random delay between 4.2 seconds (4200ms) and 6.0 seconds (6000ms)
+  const randomDelay = Math.floor(Math.random() * (6000 - 4200 + 1)) + 4200;
 
   let timer;
 
   timer = setTimeout(() => {
+    removeTimer(threadID, timer);
 
-    removeTimer(
-      threadID,
-      timer
-    );
-
-    /*
-     * If disabled while waiting,
-     * don't send the reply.
-     */
-    if (
-      !sleepingThreads.has(
-        String(threadID)
-      )
-    ) {
+    if (!sleepingThreads.has(String(threadID))) {
       return;
     }
 
     try {
-
-      /*
-       * Reply directly to the
-       * triggering message.
-       */
-      api.sendMessage(
-        reply,
-        threadID,
-        messageID
-      );
-
-      lastReplyTime.set(
-        threadID,
-        Date.now()
-      );
-
+      api.sendMessage(reply, threadID, messageID);
+      lastReplyTime.set(threadID, Date.now());
     } catch (err) {
-
-      console.log(
-        "[SLEEPING] Send error:",
-        err.message
-      );
-
+      console.log("[SLEEPING] Send error:", err.message);
     }
-
   }, randomDelay);
 
-  addTimer(
-    threadID,
-    timer
-  );
+  addTimer(threadID, timer);
 };
 
-/*
- * ============================================================
- * OPTIONAL HANDLERS
- * ============================================================
- */
-
 module.exports.handleReply = function () {};
-
 module.exports.handleReaction = function () {};
