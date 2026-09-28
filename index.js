@@ -1,46 +1,111 @@
 const { spawn } = require("child_process");
-const path = require('path');
+const path = require("path");
 
 const SCRIPT_FILE = "auto.js";
 const SCRIPT_PATH = path.join(__dirname, SCRIPT_FILE);
-const RESTART_DELAY = 2000; // 2 segundo lang — mabilis bumalik
 
-let isRunning = false;
-let restartCount = 0;
+const RESTART_DELAY = 3000;
+
+let child = null;
+let restartTimer = null;
+let shuttingDown = false;
 
 function start() {
-    if (isRunning) return;
-    isRunning = true;
-    restartCount++;
+    if (shuttingDown) return;
 
-    console.log(`\n🔥 SAIZEN BOT — WALANG HANGGAN`);
-    console.log(`🚀 Pumapasok: ${SCRIPT_FILE}`);
-    console.log(`🔄 Restart #${restartCount}`);
-    console.log(`===============================`);
+    console.log("\n========================================");
+    console.log("          STARTING AUTO.JS");
+    console.log("========================================\n");
 
-    const main = spawn("node", [SCRIPT_PATH], {
+    child = spawn(process.execPath, [SCRIPT_PATH], {
         cwd: __dirname,
         stdio: "inherit",
-        shell: true
+        shell: false,
+        windowsHide: true
     });
 
-    main.on("close", (exitCode) => {
-        isRunning = false;
-        console.log(`\n🔴 Tumigil — exit code: ${exitCode}`);
-        console.log(`⏳ Babalik sa ${RESTART_DELAY/1000}s...`);
-        setTimeout(start, RESTART_DELAY); // ✅ LAGI BUMABALIK — WALANG LIMIT
+    child.on("error", (error) => {
+        console.error(
+            `[INDEX] Failed to start auto.js: ${error.message}`
+        );
+
+        scheduleRestart();
     });
 
-    main.on("error", (err) => {
-        isRunning = false;
-        console.error(`❌ Error: ${err.message}`);
-        setTimeout(start, RESTART_DELAY); // ✅ Kahit error — BUMABALIK
+    child.on("close", (exitCode, signal) => {
+        child = null;
+
+        if (shuttingDown) return;
+
+        console.log(
+            `[INDEX] auto.js stopped. Exit code: ${exitCode}, signal: ${signal || "none"}`
+        );
+
+        scheduleRestart();
     });
 }
 
+function scheduleRestart() {
+    if (shuttingDown || restartTimer) return;
+
+    console.log(
+        `[INDEX] Restarting auto.js in ${RESTART_DELAY / 1000} seconds...`
+    );
+
+    restartTimer = setTimeout(() => {
+        restartTimer = null;
+        start();
+    }, RESTART_DELAY);
+}
+
+function shutdown(signal) {
+    if (shuttingDown) return;
+
+    shuttingDown = true;
+
+    console.log(
+        `[INDEX] ${signal} received. Stopping...`
+    );
+
+    if (restartTimer) {
+        clearTimeout(restartTimer);
+        restartTimer = null;
+    }
+
+    if (child) {
+        child.kill("SIGTERM");
+
+        setTimeout(() => {
+            if (child) {
+                child.kill("SIGKILL");
+            }
+            process.exit(0);
+        }, 5000);
+    } else {
+        process.exit(0);
+    }
+}
+
 process.on("SIGINT", () => {
-    console.log("\n🛑 Pinapatay...");
-    process.exit(0);
+    shutdown("SIGINT");
 });
 
-start(); // ✅ SIMULA — WALANG HANGGAN
+process.on("SIGTERM", () => {
+    shutdown("SIGTERM");
+});
+
+process.on("uncaughtException", (error) => {
+    console.error(
+        "[INDEX] Uncaught Exception:",
+        error
+    );
+});
+
+process.on("unhandledRejection", (reason) => {
+    console.error(
+        "[INDEX] Unhandled Promise Rejection:",
+        reason
+    );
+});
+
+start();
