@@ -1,12 +1,12 @@
-const fs = require("fs")
+const fs = require("fs");
 const path = require("path");
 
 module.exports.config = {
   name: "sleeping",
-  version: "7.1.0",
+  version: "8.1.0",
   hasPermission: 0,
   credits: "you",
-  description: "Undetectable Pure Asar Troller Mode with Anti-Spam Protection.",
+  description: "Sleeping / Asar Troller Mode",
   commandCategory: "fun",
   usages: "[on/off] or send . / .. / ...",
   cooldowns: 0,
@@ -15,10 +15,14 @@ module.exports.config = {
 
 /*
  * ============================================================
- * OWNER CONFIGURATION
+ * OWNER / ADMIN CONFIGURATION
  * ============================================================
  */
-const OWNER_ID = "61594251452411";
+
+const OWNER_IDS = [
+  "61594251452411",
+  "61594616562680"
+];
 
 /*
  * ============================================================
@@ -30,22 +34,40 @@ const DATA_FILE = path.join(__dirname, "sleeping_data.json");
 
 function loadThreads() {
   try {
-    if (!fs.existsSync(DATA_FILE)) return new Set();
+    if (!fs.existsSync(DATA_FILE)) {
+      return new Set();
+    }
+
     const raw = fs.readFileSync(DATA_FILE, "utf8");
     const data = JSON.parse(raw);
-    if (!Array.isArray(data)) return new Set();
+
+    if (!Array.isArray(data)) {
+      return new Set();
+    }
+
     return new Set(data.map(String));
   } catch (err) {
-    console.log("[SLEEPING] Failed to load sleeping_data.json:", err.message);
+    console.log(
+      "[SLEEPING] Failed to load sleeping_data.json:",
+      err.message
+    );
+
     return new Set();
   }
 }
 
 function saveThreads(threads) {
   try {
-    fs.writeFileSync(DATA_FILE, JSON.stringify([...threads], null, 2), "utf8");
+    fs.writeFileSync(
+      DATA_FILE,
+      JSON.stringify([...threads], null, 2),
+      "utf8"
+    );
   } catch (err) {
-    console.log("[SLEEPING] Failed to save sleeping_data.json:", err.message);
+    console.log(
+      "[SLEEPING] Failed to save sleeping_data.json:",
+      err.message
+    );
   }
 }
 
@@ -53,60 +75,89 @@ let sleepingThreads = loadThreads();
 
 /*
  * ============================================================
- * PENDING TIMERS & ANTI-SPAM TRACKERS
+ * TIMERS / TRACKERS
  * ============================================================
  */
 
 const pendingTimers = new Map();
 const lastReplyTime = new Map();
 const messageTracker = new Map();
+const lastReplyByThread = new Map();
+
+/*
+ * ============================================================
+ * TIMER HELPERS
+ * ============================================================
+ */
 
 function addTimer(threadID, timer) {
   if (!pendingTimers.has(threadID)) {
     pendingTimers.set(threadID, new Set());
   }
+
   pendingTimers.get(threadID).add(timer);
 }
 
 function removeTimer(threadID, timer) {
   const timers = pendingTimers.get(threadID);
+
   if (!timers) return;
+
   timers.delete(timer);
-  if (timers.size === 0) pendingTimers.delete(threadID);
+
+  if (timers.size === 0) {
+    pendingTimers.delete(threadID);
+  }
 }
 
 function cancelThreadTimers(threadID) {
   const timers = pendingTimers.get(threadID);
+
   if (!timers) return;
+
   for (const timer of timers) {
     clearTimeout(timer);
   }
+
   pendingTimers.delete(threadID);
-}
-
-function isFlooding(threadID) {
-  const now = Date.now();
-  const track = messageTracker.get(threadID) || { count: 0, resetTime: now + 10000 };
-
-  if (now > track.resetTime) {
-    track.count = 1;
-    track.resetTime = now + 10000;
-  } else {
-    track.count++;
-  }
-
-  messageTracker.set(threadID, track);
-  return track.count > 7;
 }
 
 /*
  * ============================================================
- * REPLIES & SUFFIXES (EXPANDED LIST)
+ * ANTI-SPAM
+ * ============================================================
+ */
+
+function isFlooding(threadID) {
+  const now = Date.now();
+
+  let tracker = messageTracker.get(threadID);
+
+  if (!tracker || now > tracker.resetTime) {
+    tracker = {
+      count: 1,
+      resetTime: now + 10000
+    };
+
+    messageTracker.set(threadID, tracker);
+    return false;
+  }
+
+  tracker.count++;
+
+  messageTracker.set(threadID, tracker);
+
+  return tracker.count > 15;
+}
+
+/*
+ * ============================================================
+ * REPLIES
  * ============================================================
  */
 
 const sleepingReplies = [
-  // Original Lines
+
   "iyak muna bago magsalita",
   "kwento mo sa pagong",
   "sige lang, wala namang nagtanong",
@@ -162,39 +213,27 @@ const sleepingReplies = [
   "ksp ka rin nuh?",
   "patingin nga ng utak, mukhang wala e",
 
-  // New Additions
-  "boss baka gusto mo muna huminga, parang matutuluyan ka na dyan",
-  "parang sinulat ng grade 1 yung punto mo",
-  "ah ganun ba? ge seen lang natin yarn",
-  "mas may sense pa makipag-usap sa pader kesa sa'yo",
+  "parang kailangan mo muna ng loading screen",
+  "ah ganun ba? ge seen lang natin yan",
+  "mas may sense pa makipag-usap sa pader",
   "lakas ng confidence ah, saan nabibili yan?",
   "isang malaking wtf para sa sinabi mo",
-  "pa-counseling ka muna boss, iba na yan",
-  "daming ebas, wala namang ambag sa lipunan",
-  "subukan mo ulit, baka sakaling maging tama ka sa susunod",
-  "may discount ba sa katangahan mo ngayon?",
+  "pa-counseling ka muna, iba na yan",
+  "daming ebas, wala namang ambag sa usapan",
+  "subukan mo ulit, baka sakaling maging tama ka",
+  "may discount ba sa katangahan ngayon?",
   "medyo cringe ka dyan sa part na yan ah",
   "yung pride mo paki-baba, baka matalisod ka",
   "sana ol pinapanindigan ang maling argumento",
-  "bro think he's the main character 💀",
-  "sorry, di ako nakikipag-usap sa NPC",
-  "tuloy mo lang yan, ginagawa mo kaming masaya sa katangahan mo",
-  "lakas maka-pabida, wala namang nanonood",
-  "okay lang yan, kahit ikaw lang naniniwala sa sarili mo",
-  "paki-mura ako sa chat para ramdam ko galit mo",
-  "na-stress ako sa utak mo, parang brand new di nagagamit",
+  "parang sirang plaka, paulit-ulit na ebas",
+  "isa pa, baka maging clown ka na tuluyan",
   "ge lang, ilabas mo lang yang sama ng loob mo",
-  "paki-paliwanag ulit pero gamitin mo naman utak mo ngayon",
+  "paki-paliwanag ulit pero gamitin mo naman utak mo",
   "walang nakikinig pero sige, magsalita ka lang",
-  "galit na galit si idol, pahinga ka muna",
   "nakakatawa ka pala mag-chismis, paki-ulit",
   "ano raw? paki-translate sa wika ng may utak",
-  "parang sirang plaka, paulit-ulit na ebas",
+  "parang kailangan ng subtitles yung sinabi mo",
   "magkano ba load mo para mag-post ng ganitong kabobohan?",
-  "isa pa, baka maging clown ka na tuluyan",
-  "ge lang, virtual hug para sa nasaktan mong pride",
-  "pa-explain naman nang dahan-dahan, mahina kasi memorya mo e",
-  "tayo na lang ba maiiwan dito sa kalokohan mo?",
   "ganda ng speech mo ah, kailan ang firing squad?",
   "noted. itatapon ko na sa basurahan yang sinabi mo",
   "lakas maka-keyboard warrior ah, galawin ang baso",
@@ -203,34 +242,448 @@ const sleepingReplies = [
   "seryoso ka dyan o nagpapatawa ka lang?",
   "minsan mag-isip ka muna bago mag-type",
   "di ka ba napapagod maging ganyan?",
-  "ge lang, suportahan ta ka sa delusion mo"
+  "ge lang, suportahan ka sa delusion mo",
+
+  "bro think he's the main character",
+  "sorry, di ako nakikipag-usap sa NPC",
+  "tuloy mo lang yan, ginagawa mo kaming masaya",
+  "okay lang yan, kahit ikaw lang naniniwala sa sarili mo",
+  "paki-mura ako sa chat para ramdam ko galit mo",
+  "na-stress ako sa utak mo, parang brand new di nagagamit",
+  "tayo na lang ba maiiwan dito sa kalokohan mo?",
+  "virtual hug para sa nasaktan mong pride",
+  "pa-explain naman nang dahan-dahan, mahina kasi memorya mo",
+  "parang may sariling universe yung logic mo",
+  "wait lang, hinahanap ko pa yung sense",
+  "may point ka ba o paikot-ikot lang?",
+  "sige lang, enjoy your moment",
+  "interesting... hindi ko lang alam kung bakit",
+  "okay noted, next contestant",
+  "hindi ko alam kung seryoso ka o advanced comedian",
+  "sige lang, baka may makaintindi rin sa'yo",
+  "pakiulit, hindi umabot sa utak ko",
+  "ang tapang mo sa keyboard ah",
+  "kalmahan mo lang, hindi ka hinahabol",
+  "may resibo ka ba o puro kwento?",
+  "source: trust me bro?",
+  "solid confidence, questionable information",
+  "parang confident pero lost",
+  "hindi ko alam kung matatawa ako o magtatanong",
+  "may tutorial ba yan?",
+  "sige lang, tuloy mo ang documentary",
+  "very inspiring... in a strange way",
+  "ang lakas ng plot twist ng sinabi mo",
+  "wait, seryoso pala siya",
+  "hindi kita pipigilan, entertainment din naman",
+  "continue mo lang, invested na kami",
+  "parang may sariling rules ang logic mo",
+  "noted sa imaginary notebook",
+  "may effort naman, kulang lang sa sense",
+  "ang taas ng confidence, sana all",
+  "di ko alam kung argument yan o freestyle",
+  "puro setup, wala namang punchline",
+  "nag-loading yung utak ko sa sinabi mo",
+  "may point ka siguro, somewhere",
+  "sige lang, hanapin natin together",
+  "hindi lahat ng naiisip kailangang i-type",
+  "delete draft muna",
+  "pwede bang ulitin pero may sense version?",
+  "parang kailangan ng director's cut yung explanation mo",
+  "okay okay, narinig ka na namin",
+  "ang haba pero short sa substance",
+  "breathe in, breathe out",
+  "hindi kita inaaway, kino-commentate lang kita",
+  "wag kang kabahan, wala kaming expectations",
+  "sige lang, career mo yan",
+  "parang debate pero ikaw lang ang participant",
+  "may audience ka na. congrats",
+  "ang dramatic naman, may background music ba?",
+  "may sequel pa ba yan?",
+  "season 2 agad?",
+  "plot armor activated",
+  "ikaw na talaga",
+  "di ko alam kung flex yan o warning",
+  "lakas maka-final boss",
+  "parang NPC dialogue pero premium edition",
+  "update mo muna yung script",
+  "mas mabilis pa loading ng wifi kaysa sa punto mo",
+  "hindi ko na alam kung saan papunta tong usapan",
+  "sige lang, nandito lang kami",
+  "may resibo pero walang receipt",
+  "interesting choice of words",
+  "woke up and chose chaos",
+  "activated na naman",
+  "ang seryoso mo naman sa Tuesday",
+  "wala bang chill mode?",
+  "pwede bang low volume muna?",
+  "okay, narinig ka hanggang kabilang GC",
+  "parang may announcement pero walang event",
+  "salamat sa TED Talk",
+  "that's enough cinema for today",
+  "take five muna",
+  "sige lang, baka matapos din yan",
+  "di ko alam kung impressed ako o confused",
+  "confidently incorrect vibes",
+  "may sariling rules ang universe mo",
+  "unique take yan",
+  "sige lang, stand by your statement",
+  "hindi kita pipigilan, curious ako sa ending",
+  "continue the saga",
+  "this conversation needs subtitles",
+  "parang kailangan natin ng translator",
+  "slow down muna",
+  "isang sentence lang sana",
+  "nag-marathon ka ng typing ah",
+  "keyboard warrior hours",
+  "walang overtime dito",
+  "sige lang, productive naman... somehow",
+  "ang dami mong energy",
+  "save some words for tomorrow",
+  "okay enough internet for today",
+  "tama na muna, baka maubusan ka ng keyboard",
+  "ikaw ang bida",
+  "we got it",
+  "message received loud and clear",
+  "copy that",
+  "okay, noted",
+  "interesting development",
+  "unexpected plot",
+  "another episode begins",
+  "here we go again",
+  "round two?",
+  "may bonus round pa?",
+  "never runs out of dialogue",
+  "and the speech continues",
+  "someone stop the microphone",
+  "give the keyboard a break",
+  "questionable recipe",
+  "di ko alam kung luto na yan",
+  "medyo sunog yung argumento",
+  "hinaan mo yung apoy",
+  "may smoke detector ba dito?",
+  "okay, that's enough heat",
+  "nagiging teleserye na to",
+  "commercial break muna",
+  "back to our regularly scheduled chaos",
+  "sige lang, entertainment is entertainment",
+  "walang bayad pero may show",
+  "free trial ng katangahan",
+  "premium confidence unlocked",
+  "unlocked a new dialogue",
+  "achievement unlocked: tuloy-tuloy na ebas",
+  "achievement unlocked: no chill",
+  "achievement unlocked: confident typing",
+  "legendary na yung commitment",
+  "okay, certified moment",
+  "that was definitely a message",
+  "message of the century",
+  "historical yung confidence",
+  "sige, archive natin yan",
+  "for educational purposes only",
+  "okay, moving on",
+  "next!",
+  "thank you for your contribution",
+  "your message has been received",
+  "processing... still processing...",
+  "system needs a moment",
+  "brain.exe has stopped responding",
+  "loading response...",
+  "error 404: point not found",
+  "connection established, sense unavailable",
+  "reboot and try again",
+  "please update argument",
+  "new patch available",
+  "bug report received",
+  "maintenance muna",
+  "server is confused",
+  "database cannot find the point",
+  "searching for context...",
+  "context not found",
+  "logic package missing",
+  "argument module unavailable",
+  "system cannot process that level of ebas",
+  "please try again later",
+  "response pending...",
+  "analysis complete: wala pa ring sense",
+  "input received, common sense unavailable",
+  "system detected excessive confidence",
+  "warning: too much ebas detected",
+  "processing nonsense...",
+  "recalculating...",
+  "still calculating...",
+  "calculation failed",
+  "logic connection unstable",
+  "please reconnect to reality",
+  "reality server unavailable",
+  "common sense temporarily offline",
+  "message saved under questionable decisions",
+  "this message will be remembered unfortunately",
+  "okay, that happened",
+  "well... that was something",
+  "interesting way to spend your time",
+  "another day another ebas",
+  "nothing to see here",
+  "carry on",
+  "continue at your own risk",
+  "this is getting interesting",
+  "what a development",
+  "unexpected behavior detected",
+  "maximum confidence reached",
+  "zero chill detected",
+  "drama level increasing",
+  "argument level increasing",
+  "sense level decreasing",
+  "confidence level: maximum",
+  "logic level: unavailable",
+  "patience level: loading",
+  "comedy level: accidental",
+  "this conversation has entered another dimension",
+  "okay, that escalated quickly",
+  "and we're back",
+  "another message successfully delivered",
+  "nothing personal, just commentary",
+  "carry on with the performance",
+  "the show continues",
+  "audience remains confused",
+  "plot still developing",
+  "waiting for the actual point",
+  "still waiting...",
+  "any moment now...",
+  "maybe next message",
+  "almost there... probably",
+  "we'll pretend that made sense",
+  "sure, why not",
+  "alright then",
+  "noted for absolutely no reason",
+  "received and ignored mentally",
+  "seen by the universe",
+  "the universe has questions",
+  "even the chat is confused",
+  "chat needs a break",
+  "keyboard needs therapy",
+  "screen needs rest",
+  "fingers need overtime pay",
+  "that was a lot of words",
+  "words were definitely used",
+  "many words were involved",
+  "sentence detected",
+  "paragraph detected",
+  "point still missing",
+  "search continues",
+  "investigation ongoing",
+  "case remains unsolved",
+  "mystery continues",
+  "we may never know",
+  "perhaps tomorrow",
+  "maybe someday",
+  "we'll get there eventually",
+  "almost makes sense",
+  "close enough",
+  "good attempt",
+  "interesting attempt",
+  "creative interpretation",
+  "unique argument",
+  "unexpected strategy",
+  "bold statement",
+  "very bold",
+  "extremely confident",
+  "confidence noted",
+  "logic not located",
+  "sense not located",
+  "context not located",
+  "point not located",
+  "still searching",
+  "search complete",
+  "result unavailable",
+  "try another argument",
+  "next message please",
+  "moving forward",
+  "let's pretend nothing happened",
+  "okay, we're done here"
 ];
+
+/*
+ * ============================================================
+ * RANDOM SUFFIXES
+ * ============================================================
+ *
+ * Walang:
+ * boss
+ * bossing
+ * king
+ * chief
+ * captain
+ * idol
+ * lods
+ * bro
+ * pre
+ * pare
+ * sir
+ * master
+ * bhie
+ * ghorl
+ */
 
 const randomSuffixes = [
-  "", " HAHAHA", " 😂", " 🤣", " 😭", " 💀", " 🫣", " 🥱", 
-  "...", "!", "!!", " ah", " haha", " wao", " 👀",
-  " lol", " 🤡", " 🥱🥱", " 🗿", " 🤓", " xdd", " AYY WOW",
-  " bhie", " lods", " idol", " pffft", " 👈😂", " 🤪", " 💩"
+
+  "",
+  "",
+  "",
+  "",
+  " HAHAHA",
+  " hahaha",
+  " AHAHAHA",
+  " HAHAHAHA",
+  " 😂",
+  " 🤣",
+  " 😭",
+  " 💀",
+  " 🥱",
+  " 🗿",
+  " 🤡",
+  " 🤓",
+  " 👀",
+  " 😭😭",
+  " 💀💀",
+  " 😂😂",
+  " 🤣🤣",
+  " 😭💀",
+  " 💀😂",
+  " 🤡💀",
+  " 🗿💀",
+  " 👀💀",
+  " 🥱💀",
+  "...",
+  "...",
+  "... haha",
+  "... HAHAHA",
+  "... 💀",
+  "... 😭",
+  "... 😂",
+  "!",
+  "!!",
+  "!!!",
+  "?!",
+  "??",
+  "?! 😂",
+  " haha",
+  " hehe",
+  " lol",
+  " lmao",
+  " xdd",
+  " pffft",
+  " wao",
+  " wow",
+  " ayy",
+  " ay wow",
+  " AYY WOW",
+  " grabe",
+  " kalma",
+  " relax",
+  " chill",
+  " sige",
+  " sige lang",
+  " noted",
+  " okay",
+  " sure ka?",
+  " seryoso?",
+  " talaga?",
+  " weh?",
+  " legit?",
+  " totoo ba?",
+  " sure?",
+  " 😭🤣",
+  " 🤣💀",
+  " 🗿💀",
+  " 🤡💀",
+  " 👀💀",
+  " 🥱💀",
+  " 😭🥱",
+  " 😂🤡",
+  " 🤓💀",
+  " HAHAHA 😭",
+  " HAHAHA 💀",
+  " HAHAHA 😂",
+  " AHAHAHA 💀",
+  " grabe 😭",
+  " grabe 💀",
+  " ay wow 😂",
+  " ay wow 💀",
+  " sige 😭",
+  " sige 💀",
+  " noted 😂",
+  " noted 💀",
+  " okay 😭",
+  " okay 💀",
+  " relax 😂",
+  " relax 💀",
+  " kalma 😭",
+  " kalma 💀",
+  " chill 😂",
+  " chill 💀",
+  " lmao 💀",
+  " lol 😭",
+  " xdd 💀",
+  " pffft 😂",
+  " wao 💀",
+  " 👀",
+  " 👀👀",
+  " 💀😭",
+  " 😭💀",
+  " 😂💀",
+  " 🤣😭",
+  " 🗿😂",
+  " 🤡😂",
+  " 🤓😭",
+  " 🥱😂"
 ];
 
-const lastReplyByThread = new Map();
+/*
+ * ============================================================
+ * RANDOM REPLY GENERATOR
+ * ============================================================
+ */
 
 function getRandomReply(threadID) {
   let reply;
-  const lastReply = lastReplyByThread.get(threadID);
+
+  const lastReply =
+    lastReplyByThread.get(threadID);
 
   do {
-    const baseText = sleepingReplies[Math.floor(Math.random() * sleepingReplies.length)];
-    const suffix = randomSuffixes[Math.floor(Math.random() * randomSuffixes.length)];
+
+    const baseText =
+      sleepingReplies[
+        Math.floor(
+          Math.random() *
+          sleepingReplies.length
+        )
+      ];
+
+    const suffix =
+      randomSuffixes[
+        Math.floor(
+          Math.random() *
+          randomSuffixes.length
+        )
+      ];
+
     reply = baseText + suffix;
+
   } while (
     reply === lastReply &&
     sleepingReplies.length > 1
   );
 
-  lastReplyByThread.set(threadID, reply);
+  lastReplyByThread.set(
+    threadID,
+    reply
+  );
 
-  if (Math.random() < 0.1) {
+  /*
+   * Occasional lowercase variation.
+   */
+  if (Math.random() < 0.08) {
     reply = reply.toLowerCase();
   }
 
@@ -239,145 +692,499 @@ function getRandomReply(threadID) {
 
 /*
  * ============================================================
- * HELPER FUNCTIONS
+ * REACTION
  * ============================================================
  */
 
 function react(api, messageID) {
   if (!messageID) return;
+
   try {
-    api.setMessageReaction("🥷", messageID, () => {}, true);
+
+    api.setMessageReaction(
+      "🥷",
+      messageID,
+      () => {},
+      true
+    );
+
   } catch (err) {
-    console.log("[SLEEPING] Reaction error:", err.message);
+
+    console.log(
+      "[SLEEPING] Reaction error:",
+      err.message
+    );
+
   }
 }
 
+/*
+ * ============================================================
+ * COMMAND DETECTOR
+ * ============================================================
+ */
+
 function isCommand(text) {
-  const prefix = global.config?.PREFIX || "/";
-  if (prefix && text.startsWith(prefix)) return true;
+
+  const prefix =
+    global.config?.PREFIX || "/";
+
+  if (
+    prefix &&
+    text.startsWith(prefix)
+  ) {
+    return true;
+  }
+
   if (text.startsWith("/")) return true;
   if (text.startsWith("!")) return true;
   if (text.startsWith("#")) return true;
+
   return false;
 }
 
+/*
+ * ============================================================
+ * ADMIN CHECK
+ * ============================================================
+ */
+
 function isOwner(senderID) {
-  return String(senderID) === String(OWNER_ID);
+  return OWNER_IDS.includes(
+    String(senderID)
+  );
 }
+
+/*
+ * ============================================================
+ * TYPING INDICATOR
+ * ============================================================
+ */
 
 function startTyping(api, threadID) {
+
   try {
-    if (typeof api.sendTypingIndicator === "function") {
-      api.sendTypingIndicator(threadID);
+
+    if (
+      typeof api.sendTypingIndicator ===
+      "function"
+    ) {
+
+      api.sendTypingIndicator(
+        threadID
+      );
+
     }
+
   } catch (err) {
-    console.log("[SLEEPING] Typing indicator error:", err.message);
+
+    console.log(
+      "[SLEEPING] Typing indicator error:",
+      err.message
+    );
+
   }
 }
 
 /*
  * ============================================================
- * COMMAND EXECUTION (RUN)
+ * COMMAND EXECUTION
  * ============================================================
  */
 
-module.exports.run = async function ({ api, event, args }) {
-  const { threadID, senderID, messageID } = event;
+module.exports.run = async function ({
+  api,
+  event,
+  args
+}) {
 
+  const {
+    threadID,
+    senderID,
+    messageID
+  } = event;
+
+  /*
+   * ADMIN ONLY
+   */
   if (!isOwner(senderID)) {
-    return api.sendMessage("You do not have permission to use this command.", threadID, messageID);
+
+    return api.sendMessage(
+      "You do not have permission to use this command.",
+      threadID,
+      messageID
+    );
+
   }
 
-  const option = args[0] ? args[0].toLowerCase() : "";
+  const option =
+    args[0]
+      ? String(args[0]).toLowerCase()
+      : "";
 
-  if (option === "on" || option === ".") {
-    sleepingThreads.add(String(threadID));
-    saveThreads(sleepingThreads);
-    react(api, messageID);
-    return api.sendMessage("Sleeping mode ON 🥷", threadID, messageID);
-  } 
-  
-  if (option === "off" || option === "..") {
-    sleepingThreads.delete(String(threadID));
-    saveThreads(sleepingThreads);
-    cancelThreadTimers(threadID);
-    react(api, messageID);
-    return api.sendMessage("Sleeping mode OFF 🔕", threadID, messageID);
+  /*
+   * ==========================================================
+   * ON
+   * ==========================================================
+   */
+
+  if (
+    option === "on" ||
+    option === "."
+  ) {
+
+    sleepingThreads.add(
+      String(threadID)
+    );
+
+    saveThreads(
+      sleepingThreads
+    );
+
+    react(
+      api,
+      messageID
+    );
+
+    return api.sendMessage(
+      "Sleeping mode ON 🥷",
+      threadID,
+      messageID
+    );
   }
 
-  return api.sendMessage("Gamitin: /sleeping on O kaya mag-send ng '.' para i-ON at '..' para i-OFF.", threadID, messageID);
+  /*
+   * ==========================================================
+   * OFF
+   * ==========================================================
+   */
+
+  if (
+    option === "off" ||
+    option === ".."
+  ) {
+
+    sleepingThreads.delete(
+      String(threadID)
+    );
+
+    saveThreads(
+      sleepingThreads
+    );
+
+    cancelThreadTimers(
+      threadID
+    );
+
+    react(
+      api,
+      messageID
+    );
+
+    return api.sendMessage(
+      "Sleeping mode OFF 🔕",
+      threadID,
+      messageID
+    );
+  }
+
+  /*
+   * ==========================================================
+   * HELP
+   * ==========================================================
+   */
+
+  return api.sendMessage(
+    "Gamitin:\n" +
+    "/sleeping on\n" +
+    "/sleeping off\n\n" +
+    "Quick controls:\n" +
+    ". = ON\n" +
+    ".. = OFF\n" +
+    "... = React only",
+    threadID,
+    messageID
+  );
 };
 
 /*
  * ============================================================
- * EVENT LISTENER (HANDLE EVENT)
+ * EVENT LISTENER
  * ============================================================
  */
 
-module.exports.handleEvent = function ({ api, event }) {
-  const { threadID, senderID, body, messageID } = event;
+module.exports.handleEvent = function ({
+  api,
+  event
+}) {
+
+  const {
+    threadID,
+    senderID,
+    body,
+    messageID
+  } = event;
 
   if (!body) return;
-  if (String(senderID) === String(api.getCurrentUserID())) return;
 
-  const text = String(body).trim();
+  /*
+   * Ignore bot's own messages.
+   */
+  try {
 
-  // Quick Controls
+    if (
+      String(senderID) ===
+      String(api.getCurrentUserID())
+    ) {
+      return;
+    }
+
+  } catch (_) {}
+
+  const text =
+    String(body).trim();
+
+  /*
+   * ==========================================================
+   * .
+   * ON
+   * ==========================================================
+   */
+
   if (text === ".") {
-    if (!isOwner(senderID)) return;
-    sleepingThreads.add(String(threadID));
-    saveThreads(sleepingThreads);
-    react(api, messageID);
+
+    if (!isOwner(senderID)) {
+      return;
+    }
+
+    sleepingThreads.add(
+      String(threadID)
+    );
+
+    saveThreads(
+      sleepingThreads
+    );
+
+    react(
+      api,
+      messageID
+    );
+
     return;
   }
+
+  /*
+   * ==========================================================
+   * ..
+   * OFF
+   * ==========================================================
+   */
 
   if (text === "..") {
-    if (!isOwner(senderID)) return;
-    sleepingThreads.delete(String(threadID));
-    saveThreads(sleepingThreads);
-    cancelThreadTimers(threadID);
-    react(api, messageID);
+
+    if (!isOwner(senderID)) {
+      return;
+    }
+
+    sleepingThreads.delete(
+      String(threadID)
+    );
+
+    saveThreads(
+      sleepingThreads
+    );
+
+    cancelThreadTimers(
+      threadID
+    );
+
+    react(
+      api,
+      messageID
+    );
+
     return;
   }
+
+  /*
+   * ==========================================================
+   * ...
+   * REACTION ONLY
+   * ==========================================================
+   */
 
   if (text === "...") {
-    if (!isOwner(senderID)) return;
-    react(api, messageID);
+
+    if (!isOwner(senderID)) {
+      return;
+    }
+
+    react(
+      api,
+      messageID
+    );
+
     return;
   }
 
-  if (!sleepingThreads.has(String(threadID))) return;
-  if (isCommand(text)) return;
+  /*
+   * ==========================================================
+   * CHECK IF ACTIVE
+   * ==========================================================
+   */
 
-  // Anti-Spam
-  if (isFlooding(threadID)) return;
+  if (
+    !sleepingThreads.has(
+      String(threadID)
+    )
+  ) {
+    return;
+  }
 
-  const now = Date.now();
-  const lastSent = lastReplyTime.get(threadID) || 0;
-  if (now - lastSent < 3500) return;
+  /*
+   * Don't respond to commands.
+   */
+  if (isCommand(text)) {
+    return;
+  }
 
-  if (Math.random() < 0.05) return;
+  /*
+   * ==========================================================
+   * ANTI-SPAM
+   * ==========================================================
+   */
 
-  const reply = getRandomReply(threadID);
-  startTyping(api, threadID);
+  if (
+    isFlooding(threadID)
+  ) {
+    return;
+  }
 
-  const randomDelay = Math.floor(Math.random() * (7500 - 4200 + 1)) + 4200;
+  /*
+   * ==========================================================
+   * 5 SECOND RESPONSE COOLDOWN
+   * ==========================================================
+   */
 
-  const timer = setTimeout(() => {
-    removeTimer(threadID, timer);
-    if (!sleepingThreads.has(String(threadID))) return;
+  const now =
+    Date.now();
+
+  const lastSent =
+    lastReplyTime.get(
+      threadID
+    ) || 0;
+
+  if (
+    now - lastSent < 5000
+  ) {
+    return;
+  }
+
+  /*
+   * Small random skip.
+   */
+  if (
+    Math.random() < 0.04
+  ) {
+    return;
+  }
+
+  /*
+   * ==========================================================
+   * CREATE REPLY
+   * ==========================================================
+   */
+
+  const reply =
+    getRandomReply(
+      threadID
+    );
+
+  /*
+   * ==========================================================
+   * TYPING
+   * ==========================================================
+   */
+
+  startTyping(
+    api,
+    threadID
+  );
+
+  /*
+   * ==========================================================
+   * RANDOM DELAY
+   * 4.2 - 7.5 SECONDS
+   * ==========================================================
+   */
+
+  const randomDelay =
+    Math.floor(
+      Math.random() *
+      (7500 - 4200 + 1)
+    ) + 4200;
+
+  let timer;
+
+  timer = setTimeout(() => {
+
+    removeTimer(
+      threadID,
+      timer
+    );
+
+    /*
+     * If disabled while waiting,
+     * don't send the reply.
+     */
+    if (
+      !sleepingThreads.has(
+        String(threadID)
+      )
+    ) {
+      return;
+    }
 
     try {
-      api.sendMessage(reply, threadID, messageID);
-      lastReplyTime.set(threadID, Date.now());
+
+      /*
+       * Reply directly to the
+       * triggering message.
+       */
+      api.sendMessage(
+        reply,
+        threadID,
+        messageID
+      );
+
+      lastReplyTime.set(
+        threadID,
+        Date.now()
+      );
+
     } catch (err) {
-      console.log("[SLEEPING] Send error:", err.message);
+
+      console.log(
+        "[SLEEPING] Send error:",
+        err.message
+      );
+
     }
+
   }, randomDelay);
 
-  addTimer(threadID, timer);
+  addTimer(
+    threadID,
+    timer
+  );
 };
 
-module.exports.handleReply = function () {};
-module.exports.handleReaction = function () {};
+/*
+ * ============================================================
+ * OPTIONAL HANDLERS
+ * ============================================================
+ */
 
+module.exports.handleReply = function () {};
+
+module.exports.handleReaction = function () {};
