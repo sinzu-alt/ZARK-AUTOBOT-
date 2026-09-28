@@ -3,205 +3,295 @@ const path = require('path');
 const login = require('ws3-fca');
 const express = require('express');
 const app = express();
+const chalk = require('chalk');
 const bodyParser = require('body-parser');
 const script = path.join(__dirname, 'script');
+const cron = require('node-cron');
 
-// ⚙️ SETTINGS
-const REPLY_DELAY = 5000;      // 5 segundo bago sumagot ulit
+// ⚙️ MGA DINAGDAG MO — WALANG BINAGO SA IBA
+const REPLY_DELAY = 5000;      // ⏱️ 5 segundo bago pwede sumagot ulit
 const SESSION_DIR = path.join(__dirname, './data/session');
+let isReplying = false;        // 🔒 Hindi magrereply habang busy
 
-// ✅ KANDADO — HINDI MAGREPLY HANGGANG BUSY
-let isReplying = false;
-
-// Siguraduhin may folder
-if (!fs.existsSync('./data')) fs.mkdirSync('./data', { recursive: true });
-if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
-
-// Load config at dev
-const config = fs.existsSync('./data/config.json') 
-  ? JSON.parse(fs.readFileSync('./data/config.json', 'utf8')) 
-  : [{ masterKey: { admin: [] }, fcaOption: { listenEvents: true, selfListen: true, online: true } }];
-const dev = fs.existsSync('./dev.json') ? JSON.parse(fs.readFileSync('./dev.json')) : [];
-
-const Utils = {
+const config = fs.existsSync('./data') && fs.existsSync('./data/config.json') ? JSON.parse(fs.readFileSync('./data/config.json', 'utf8')) : createConfig();
+const dev = JSON.parse(fs.readFileSync('./dev.json'));
+const Utils = new Object({
   commands: new Map(),
   handleEvent: new Map(),
   account: new Map(),
-  cooldowns: new Map()
-};
+  cooldowns: new Map(),
+});
 
-// Load lahat ng commands at events
-function loadFile(p) {
-  try {
-    const mod = require(p);
-    if (!mod.config) return;
-    
-    const names = Array.isArray(mod.config.name) ? mod.config.name : [mod.config.name];
-    const entry = {
-      name: mod.config.name,
-      aliases: mod.config.aliases || [],
-      hasPrefix: mod.config.hasPrefix !== false,
-      run: mod.run,
-      handleEvent: mod.handleEvent,
-      cooldown: mod.config.cooldown || 3,
-      role: mod.config.role || 0,
-      dev: mod.config.dev || false
-    };
-    
-    Utils.commands.set(names, entry);
-    if (mod.handleEvent) Utils.handleEvent.set(names, entry);
-  } catch (e) {
-    console.error(`❌ ${path.basename(p)}: ${e.message}`);
-  }
-}
+// Siguraduhing meron na ang folders
+if (!fs.existsSync('./data')) fs.mkdirSync('./data', { recursive: true });
+if (!fs.existsSync('./data/history.json')) fs.writeFileSync('./data/history.json', '[]', 'utf-8');
+if (!fs.existsSync('./data/session')) fs.mkdirSync('./data/session', { recursive: true });
+if (!fs.existsSync('./data/database.json')) fs.writeFileSync('./data/database.json', '[]', 'utf-8');
 
-if (fs.existsSync(script)) {
-  fs.readdirSync(script).forEach(file => {
-    const full = path.join(script, file);
-    if (fs.statSync(full).isDirectory()) {
-      fs.readdirSync(full).forEach(sub => loadFile(path.join(full, sub)));
-    } else {
-      loadFile(full);
+fs.readdirSync(script).forEach((file) => {
+  const scripts = path.join(script, file);
+  const stats = fs.statSync(scripts);
+  if (stats.isDirectory()) {
+    fs.readdirSync(scripts).forEach((file) => {
+      try {
+        const { config, run, handleEvent } = require(path.join(scripts, file));
+        if (config) {
+          const {
+            name = [], role = '0', version = '1.0.0', hasPrefix = true, aliases = [], description = '', usage = '', credits = '', cooldown = '5', dev = false
+          } = Object.fromEntries(Object.entries(config).map(([key, value]) => [key.toLowerCase(), value]));
+          aliases.push(name);
+          if (run) {
+            Utils.commands.set(aliases, {
+              name, role, run, aliases, description, usage, version, hasPrefix: config.hasPrefix, credits, cooldown, dev
+            });
+          }
+          if (handleEvent) {
+            Utils.handleEvent.set(aliases, {
+              name, handleEvent, role, description, usage, version, hasPrefix: config.hasPrefix, credits, cooldown, dev
+            });
+          }
+        }
+      } catch (error) {
+        console.error(chalk.red(`Error installing command from file ${file}: ${error.message}`));
+      }
+    });
+  } else {
+    try {
+      const { config, run, handleEvent } = require(scripts);
+      if (config) {
+        const {
+          name = [], role = '0', version = '1.0.0', hasPrefix = true, aliases = [], description = '', usage = '', credits = '', cooldown = '5', dev = false
+        } = Object.fromEntries(Object.entries(config).map(([key, value]) => [key.toLowerCase(), value]));
+        aliases.push(name);
+        if (run) {
+          Utils.commands.set(aliases, {
+            name, role, run, aliases, description, usage, version, hasPrefix: config.hasPrefix, credits, cooldown, dev
+          });
+        }
+        if (handleEvent) {
+          Utils.handleEvent.set(aliases, {
+            name, handleEvent, role, description, usage, version, hasPrefix: config.hasPrefix, credits, cooldown, dev
+          });
+        }
+      }
+    } catch (error) {
+      console.error(chalk.red(`Error installing command from file ${file}: ${error.message}`));
     }
-  });
-}
-
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(bodyParser.json());
-
-// ✅ LOGIN ENDPOINT
-app.post('/login', async (req, res) => {
-  const { state, commands, prefix, admin } = req.body;
-  try {
-    const uid = state.find(i => i.key === 'c_user')?.value;
-    if (!uid) throw new Error('Invalid appstate');
-    
-    const sf = path.join(SESSION_DIR, `${uid}.json`);
-    if (!fs.existsSync(sf)) fs.writeFileSync(sf, JSON.stringify(state, null, 2));
-    
-    // I-save sa history
-    const histPath = './data/history.json';
-    const history = fs.existsSync(histPath) ? JSON.parse(fs.readFileSync(histPath, 'utf-8')) : [];
-    if (!history.find(h => h.userid === uid)) {
-      history.push({ userid: uid, prefix, admin, enableCommands: commands || [] });
-      fs.writeFileSync(histPath, JSON.stringify(history, null, 2));
-    }
-    
-    await accountLogin(state, commands || [], prefix || '', admin || []);
-    res.json({ success: true, message: '✅ NAKA-SAVE — Gagana na ang autoreply!' });
-  } catch (e) {
-    res.status(400).json({ error: true, message: e.message });
   }
 });
 
-app.listen(3000, () => console.log('🌐 Port 3000 — Online na!'));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.json());
+app.use(express.json());
+const routes = [
+  { path: '/', file: 'index.html' },
+  { path: '/step_by_step_guide', file: 'guide.html' },
+  { path: '/online_user', file: 'online.html' },
+];
+routes.forEach(route => {
+  app.get(route.path, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', route.file));
+  });
+});
 
-// ─── MAIN LOGIN + AUTO-RECONNECT ───
-async function accountLogin(state, enableCommands = [], prefix = '', admin = []) {
+app.get('/info', (req, res) => {
+  const data = Array.from(Utils.account.values()).map(account => ({
+    name: account.name, profileUrl: account.profileUrl, thumbSrc: account.thumbSrc, time: account.time
+  }));
+  res.json(JSON.parse(JSON.stringify(data, null, 2)));
+});
+
+app.get('/commands', (req, res) => {
+  const command = new Set();
+  const commands = [...Utils.commands.values()].map(({ name }) => (command.add(name), name));
+  const handleEvent = [...Utils.handleEvent.values()].map(({ name }) => command.has(name) ? null : (command.add(name), name)).filter(Boolean);
+  const role = [...Utils.commands.values()].map(({ role }) => (command.add(role), role));
+  const aliases = [...Utils.commands.values()].map(({ aliases }) => (command.add(aliases), aliases));
+  res.json(JSON.parse(JSON.stringify({ commands, handleEvent, role, aliases }, null, 2)));
+});
+
+app.post('/login', async (req, res) => {
+  const { state, commands, prefix, admin } = req.body;
+  try {
+    if (!state) throw new Error('Missing app state data');
+    const cUser = state.find(item => item.key === 'c_user');
+    if (cUser) {
+      const existingUser = Utils.account.get(cUser.value);
+      if (existingUser) {
+        console.log(`User ${cUser.value} is already logged in`);
+        return res.status(400).json({
+          error: false, message: "Active user session detected; already logged in", user: existingUser
+        });
+      } else {
+        // ✅ I-SAVE ANG SESSION
+        const sessionFile = path.join(SESSION_DIR, `${cUser.value}.json`);
+        if (!fs.existsSync(sessionFile)) {
+          fs.writeFileSync(sessionFile, JSON.stringify(state, null, 2));
+          console.log(`💾 Session saved: ${cUser.value}`);
+        }
+        await accountLogin(state, commands, prefix, [admin]);
+        return res.status(200).json({
+          success: true, message: '✅ NAKA-SAVE — Hindi na kailangan ulit!'
+        });
+      }
+    }
+    throw new Error('Invalid appstate data');
+  } catch (error) {
+    res.status(400).json({ error: true, message: error.message });
+  }
+});
+
+app.listen(3000, () => {
+  console.log(`Server is running on port 3000`);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Promise Rejection:', reason);
+});
+
+async function accountLogin(state, enableCommands = [], prefix, admin = []) {
+  // I-enable lahat ng commands/events
+  enableCommands = [
+    { commands: Array.from(Utils.commands.values()).map(c => c.name) },
+    { handleEvent: Array.from(Utils.handleEvent.values()).map(c => c.name) }
+  ];
+
   return new Promise((resolve, reject) => {
-    login({ appState: state }, async (err, api) => {
-      if (err) {
-        console.log(`🔴 Login failed: ${err.message}`);
-        return reject(err);
+    login({ appState: state }, async (error, api) => {
+      if (error) {
+        console.log(`🔴 Login failed: ${error.message}`);
+        return reject(error);
       }
       
       const userid = await api.getCurrentUserID();
       console.log(`✅ ONLINE: ${userid}`);
+      
+      addThisUser(userid, enableCommands, state, prefix, admin);
+      
+      try {
+        const userInfo = await api.getUserInfo(userid);
+        if (!userInfo || !userInfo[userid]?.name) throw new Error('Account locked');
+        const { name, profileUrl, thumbSrc } = userInfo[userid];
+        let time = (JSON.parse(fs.readFileSync('./data/history.json', 'utf-8')).find(u => u.userid === userid) || {}).time || 0;
+        Utils.account.set(userid, { name, profileUrl, thumbSrc, time });
+        setInterval(() => {
+          const acc = Utils.account.get(userid);
+          if (acc) Utils.account.set(userid, { ...acc, time: acc.time + 1 });
+        }, 1000);
+      } catch (err) {
+        Utils.account.delete(userid);
+        deleteThisUser(userid, false); // ✅ HINDI BUBURAHIN SESSION
+        return reject(err);
+      }
 
       api.setOptions({
-        listenEvents: true,
-        selfListen: true,
-        online: true,
-        autoMarkDelivery: false,
-        autoMarkRead: false
+        listenEvents: config[0].fcaOption.listenEvents,
+        logLevel: config[0].fcaOption.logLevel,
+        updatePresence: config[0].fcaOption.updatePresence,
+        selfListen: config[0].fcaOption.selfListen,
+        forceLogin: config[0].fcaOption.forceLogin,
+        online: config[0].fcaOption.online,
+        autoMarkDelivery: config[0].fcaOption.autoMarkDelivery,
+        autoMarkRead: config[0].fcaOption.autoMarkRead,
       });
 
-      function listen() {
+      function startListen() {
         api.listenMqtt(async (listenErr, event) => {
-          // Auto-reconnect kapag nadisconnect
+          // ✅ AUTO-RECONNECT kapag nadisconnect
           if (listenErr) {
-            console.log(`🔴 Nadisconnect — babalik sa 5s...`);
-            setTimeout(() => {
+            console.log(`🔴 NADISCONNECT — Magbabalik sa 5s...`);
+            setTimeout(async () => {
               const sf = path.join(SESSION_DIR, `${userid}.json`);
-              if (fs.existsSync(sf)) {
+              if (!fs.existsSync(sf)) return;
+              try {
                 const savedState = JSON.parse(fs.readFileSync(sf, 'utf-8'));
-                accountLogin(savedState, enableCommands, prefix, admin);
+                const hist = JSON.parse(fs.readFileSync('./data/history.json', 'utf-8'));
+                const data = hist.find(u => u.userid === userid);
+                if (data) {
+                  console.log(`🔁 KUSANG NAGLA-LOGIN — Hindi ka gagalaw!`);
+                  await accountLogin(savedState, data.enableCommands, data.prefix, data.admin);
+                }
+              } catch (e) {
+                console.log(`❌ Reconnect failed: ${e.message}`);
               }
             }, 5000);
             return;
           }
           
-          // ✅ Walang laman — laktawan
-          if (!event || (!event.body && event.type === 'message')) return;
+          if (!event) return;
           
-          // ✅ I-type ang event para makita kung ano ang dumarating
-          if (event.body) {
-            console.log(`📩 Dumating: ${event.body.slice(0, 30)}`);
-          }
-
-          // ✅ KANDADO — LALAKTAVAN KUNG BUSY
+          // ✅ KANDADO — HINDI MAGREPLY KUNG BUSY
           if (isReplying) {
             console.log(`⏳ Busy pa — nilalaktawan`);
             return;
           }
 
-          // ✅ PROSESO NG LAHAT NG EVENT (kabilang ang autoreply)
-          isReplying = true; // 🔒 I-lock muna
+          isReplying = true; // 🔒 I-lock
 
           try {
-            // Patakbuhin ang lahat ng handleEvent (autoreply, etc.)
-            for (const [names, mod] of Utils.handleEvent) {
-              if (mod.handleEvent) {
-                try {
-                  await mod.handleEvent({ api, event, enableCommands, prefix, admin });
-                } catch (e) {
-                  console.error(`❌ Event error [${mod.name}]: ${e.message}`);
-                }
+            // ORIHINAL NA PROCESSING — WALANG BINAGO
+            let database = fs.existsSync('./data/database.json') ? JSON.parse(fs.readFileSync('./data/database.json', 'utf8')) : createDatabase();
+            let data = Array.isArray(database) ? database.find(item => Object.keys(item)[0] === event?.threadID) : {};
+            let adminIDS = data ? database : createThread(event.threadID, api);
+            let blacklist = (JSON.parse(fs.readFileSync('./data/history.json', 'utf-8')).find(b => b.userid === userid) || {}).blacklist || [];
+            
+            let hasPrefix = (event.body && aliases((event.body || '').trim().toLowerCase().split(/ +/).shift())?.hasPrefix === false) ? '' : prefix;
+            let [command, ...args] = ((event.body || '').trim().toLowerCase().startsWith((hasPrefix || '').toLowerCase()))
+              ? (event.body || '').trim().substring((hasPrefix || '').length).trim().split(/\s+/).map(a => a.trim())
+              : [];
+
+            if (hasPrefix && aliases(command)?.hasPrefix === false) {
+              api.sendMessage(`This command doesn't need a prefix`, event.threadID, event.messageID);
+              return;
+            }
+            if (event.body && aliases(command)?.name) {
+              if (aliases(command)?.dev && !dev.includes(event.senderID)) {
+                return api.sendMessage("Developer only.", event.threadID, event.messageID);
+              }
+              const isAdmin = config?.[0]?.masterKey?.admin?.includes(event.senderID) || admin.includes(event.senderID);
+              const isThreadAdmin = isAdmin || ((Array.isArray(adminIDS) ? adminIDS.find(a => Object.keys(a)[0] === event.threadID) : {})?.[event.threadID] || []).some(a => a.id === event.senderID);
+              const role = aliases(command)?.role ?? 0;
+              if ((role == 1 && !isAdmin) || (role == 2 && !isThreadAdmin) || (role == 3 && !config[0].masterKey.admin.includes(event.senderID))) {
+                return api.sendMessage(`No permission.`, event.threadID, event.messageID);
+              }
+            }
+            if (event.body && aliases(command)?.name) {
+              if (blacklist.includes(event.senderID)) {
+                api.sendMessage("You are banned.", event.threadID, event.messageID);
+                return;
+              }
+            }
+            if (event.body && aliases(command)?.name) {
+              const now = Date.now();
+              const cdKey = `${event.senderID}_${aliases(command).name}_${userid}`;
+              const cd = Utils.cooldowns.get(cdKey);
+              const delay = (aliases(command).cooldown || 0) * 1000;
+              if (cd && (now - cd.timestamp) < delay) {
+                const sec = Math.ceil((cd.timestamp + delay - now) / 1000);
+                return api.sendMessage(`Wait ${sec}s`, event.threadID, event.messageID);
+              }
+              Utils.cooldowns.set(cdKey, { timestamp: now });
+            }
+            if (event.body && !command && event.body?.toLowerCase().startsWith(prefix.toLowerCase())) {
+              api.sendMessage(`Invalid command — use ${prefix}help`, event.threadID, event.messageID);
+              return;
+            }
+            if (event.body && command && !aliases(command)?.name) {
+              api.sendMessage(`Unknown command: ${command}`, event.threadID, event.messageID);
+              return;
+            }
+
+            // Run event handlers
+            for (const [, h] of Utils.handleEvent) {
+              if ((enableCommands[1].handleEvent || []).includes(h.name) || (enableCommands[0].commands || []).includes(h.name)) {
+                h.handleEvent?.({ api, event, args, enableCommands, admin, prefix, blacklist, Utils });
               }
             }
 
-            // Patakbuhin ang commands
-            if (event.body && event.type === 'message') {
-              const body = event.body.trim();
-              let cmdName = '';
-              let args = [];
-              let usesPrefix = true;
-
-              // Alamin kung may prefix
-              if (prefix && body.toLowerCase().startsWith(prefix.toLowerCase())) {
-                const withoutPrefix = body.slice(prefix.length).trim();
-                [cmdName, ...args] = withoutPrefix.split(/\s+/);
-              } else {
-                // Subukan kung prefixless command
-                [cmdName, ...args] = body.split(/\s+/);
-                usesPrefix = false;
-              }
-
-              if (cmdName) {
-                cmdName = cmdName.toLowerCase();
-                let found = null;
-                
-                for (const [names, mod] of Utils.commands) {
-                  const allNames = [...names, ...(mod.aliases || [])].map(n => n?.toLowerCase());
-                  if (allNames.includes(cmdName)) {
-                    found = mod;
-                    break;
-                  }
-                }
-
-                if (found) {
-                  // Kung kailangan ng prefix pero wala — huwag patakbuhin
-                  if (usesPrefix && !found.hasPrefix) {
-                    // Prefixless command — patakbuhin kahit walang prefix
-                  } else if (!usesPrefix && found.hasPrefix) {
-                    // May kailangang prefix — huwag patakbuhin kung wala
-                    isReplying = false;
-                    return;
-                  }
-
-                  console.log(`📤 Patakbuhin: ${found.name}`);
-                  await found.run({ api, event, args, enableCommands, prefix, admin, Utils });
-                }
+            // Run commands
+            if (['message','message_reply'].includes(event.type)) {
+              if (enableCommands[0].commands.includes(aliases(command?.toLowerCase())?.name)) {
+                await ((aliases(command?.toLowerCase())?.run || (() => {}))({ api, event, args, enableCommands, admin, prefix, blacklist, Utils }));
               }
             }
           } catch (e) {
@@ -209,43 +299,108 @@ async function accountLogin(state, enableCommands = [], prefix = '', admin = [])
           } finally {
             // ✅ 5 segundo bago magbukas ulit
             setTimeout(() => {
-              isReplying = false; // 🔓 Buksan na ulit
+              isReplying = false; // 🔓 Buksan
               console.log(`🔓 Handa na ulit`);
             }, REPLY_DELAY);
           }
         });
       }
       
-      listen();
+      startListen();
       resolve();
     });
   });
 }
 
-// ✅ AUTO-LOAD SA PAG-START
-(async () => {
-  if (!fs.existsSync(SESSION_DIR)) return;
-  const files = fs.readdirSync(SESSION_DIR);
-  if (files.length === 0) {
-    console.log(`⚠️ Mag-login muna sa dashboard`);
-    return;
+// ✅ HINDI BUBURAHIN SESSION
+async function deleteThisUser(userid, removeSession = true) {
+  const configFile = './data/history.json';
+  let config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+  const sessionFile = path.join(SESSION_DIR, `${userid}.json`);
+  const index = config.findIndex(item => item.userid === userid);
+  if (index !== -1) config.splice(index, 1);
+  fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+  
+  if (removeSession) { // ✅ Default: HINDI BURAHIN
+    try { fs.unlinkSync(sessionFile); } catch (e) {}
   }
-  console.log(`🔍 Ina-load ${files.length} session...`);
+}
+
+async function addThisUser(userid, enableCommands, state, prefix, admin, blacklist) {
+  const configFile = './data/history.json';
+  const sessionFile = path.join(SESSION_DIR, `${userid}.json`);
+  if (fs.existsSync(sessionFile)) return; // ✅ Kung nandoon na — HUWAG PALITAN
   
-  const histPath = './data/history.json';
-  const history = fs.existsSync(histPath) ? JSON.parse(fs.readFileSync(histPath, 'utf-8')) : [];
+  const config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+  config.push({ userid, prefix: prefix || "", admin: admin || [], blacklist: blacklist || [], enableCommands, time: 0 });
+  fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+  fs.writeFileSync(sessionFile, JSON.stringify(state, null, 2)); // ✅ I-SAVE
+}
+
+function aliases(command) {
+  const found = Array.from(Utils.commands.entries()).find(([keys]) => keys.includes(command?.toLowerCase()));
+  return found ? found[1] : null;
+}
+
+async function main() {
+  const empty = require('fs-extra');
+  const cacheFile = './script/cache';
+  if (!fs.existsSync(cacheFile)) fs.mkdirSync(cacheFile);
   
-  for (const file of files) {
-    try {
+  cron.schedule(`*/${config[0].masterKey.restartTime} * * * *`, async () => {
+    const history = JSON.parse(fs.readFileSync('./data/history.json', 'utf-8'));
+    history.forEach(user => {
+      const update = Utils.account.get(user.userid);
+      if (update) user.time = update.time;
+    });
+    await empty.emptyDir(cacheFile);
+    fs.writeFileSync('./data/history.json', JSON.stringify(history, null, 2));
+  });
+
+  // ✅ AUTO-LOAD NG SESSION SA PAG-START
+  try {
+    for (const file of fs.readdirSync(SESSION_DIR)) {
       const uid = path.parse(file).name;
       const state = JSON.parse(fs.readFileSync(path.join(SESSION_DIR, file), 'utf-8'));
-      const data = history.find(h => h.userid === uid);
+      const hist = JSON.parse(fs.readFileSync('./data/history.json', 'utf-8'));
+      const data = hist.find(h => h.userid === uid);
       if (data) {
-        console.log(`🔁 Nagla-login: ${uid}`);
-        await accountLogin(state, data.enableCommands || [], data.prefix || '', data.admin || []);
+        console.log(`🔁 Restoring session: ${uid}`);
+        await accountLogin(state, data.enableCommands, data.prefix, data.admin, data.blacklist);
       }
-    } catch (e) {
-      console.log(`⚠️ ${file}: ${e.message}`);
     }
+  } catch (error) {
+    console.log(`⚠️ No saved sessions yet — login via dashboard first`);
   }
-})();
+}
+
+function createConfig() {
+  const config = [{
+    masterKey: { admin: [], devMode: false, database: false, restartTime: 15 },
+    fcaOption: {
+      forceLogin: true, listenEvents: true, logLevel: "silent",
+      updatePresence: true, selfListen: true, online: true,
+      autoMarkDelivery: false, autoMarkRead: false
+    }
+  }];
+  if (!fs.existsSync('./data')) fs.mkdirSync('./data', { recursive: true });
+  fs.writeFileSync('./data/config.json', JSON.stringify(config, null, 2));
+  return config;
+}
+
+async function createThread(threadID, api) {
+  const database = JSON.parse(fs.readFileSync('./data/database.json', 'utf-8'));
+  const threadInfo = await api.getThreadInfo(threadID);
+  const adminIDs = threadInfo?.adminIDs || [];
+  const entry = {}; entry[threadID] = adminIDs;
+  database.push(entry);
+  fs.writeFileSync('./data/database.json', JSON.stringify(database, null, 2));
+  return database;
+}
+
+async function createDatabase() {
+  if (!fs.existsSync('./data')) fs.mkdirSync('./data', { recursive: true });
+  fs.writeFileSync('./data/database.json', JSON.stringify([]));
+}
+
+main();
