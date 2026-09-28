@@ -7,6 +7,11 @@ const chalk = require('chalk');
 const bodyParser = require('body-parser');
 const script = path.join(__dirname, 'script');
 const cron = require('node-cron');
+
+// ⚙️ DINAGDAG: Auto-Reconnect Settings
+const RELOGIN_DELAY = 5000; // 5 segundo bago mag-reconnect
+const SESSION_DIR = path.join(__dirname, './data/session');
+
 const config = fs.existsSync('./data') && fs.existsSync('./data/config.json') ? JSON.parse(fs.readFileSync('./data/config.json', 'utf8')) : createConfig();
 const dev = JSON.parse(fs.readFileSync('./dev.json'));
 const Utils = new Object({
@@ -15,6 +20,7 @@ const Utils = new Object({
   account: new Map(),
   cooldowns: new Map(),
 });
+
 fs.readdirSync(script).forEach((file) => {
   const scripts = path.join(script, file);
   const stats = fs.statSync(scripts);
@@ -112,6 +118,7 @@ fs.readdirSync(script).forEach((file) => {
     }
   }
 });
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(express.json());
@@ -210,11 +217,12 @@ app.post('/login', async (req, res) => {
   }
 });
 app.listen(3000, () => {
-  console.log(`Server is running at http://localhost:5000`);
+  console.log(`Server is running on port 3000`);
 });
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Promise Rejection:', reason);
 });
+
 async function accountLogin(state, enableCommands = [], prefix, admin = []) {
   return new Promise((resolve, reject) => {
     login({
@@ -268,129 +276,160 @@ async function accountLogin(state, enableCommands = [], prefix, admin = []) {
         autoMarkDelivery: config[0].fcaOption.autoMarkDelivery,
         autoMarkRead: config[0].fcaOption.autoMarkRead,
       });
-      try {
-        var listenEmitter = api.listenMqtt(async (error, event) => {
-          if (error) {
-            if (error === 'Connection closed.') {
-              console.error(`Error during API listen: ${error}`, userid);
+      
+      // ─── MODIFIED: Auto-Reconnect Logic ───
+      async function startListening() {
+        try {
+          api.listenMqtt(async (error, event) => {
+            if (error) {
+              console.log(`🔴 NADISCONNECT [${userid}] — Magre-reconnect sa ${RELOGIN_DELAY/1000}s...`);
+              Utils.account.delete(userid);
+              
+              setTimeout(async () => {
+                try {
+                  const sessionPath = path.join(SESSION_DIR, `${userid}.json`);
+                  if (!fs.existsSync(sessionPath)) {
+                    console.log(`⚠️ Walang naka-save na session: ${userid}`);
+                    return;
+                  }
+                  const savedState = JSON.parse(fs.readFileSync(sessionPath, 'utf-8'));
+                  const history = JSON.parse(fs.readFileSync('./data/history.json', 'utf-8'));
+                  const uData = history.find(u => u.userid === userid);
+                  if (uData && savedState) {
+                    console.log(`🔁 Muling nagla-login: ${userid}`);
+                    await accountLogin(savedState, uData.enableCommands, uData.prefix, uData.admin);
+                  }
+                } catch (e) {
+                  console.log(`❌ Reconnect failed: ${e.message}`);
+                }
+              }, RELOGIN_DELAY);
+              return;
             }
-            console.log(error)
-          }
-          let database = fs.existsSync('./data/database.json') ? JSON.parse(fs.readFileSync('./data/database.json', 'utf8')) : createDatabase();
-          let data = Array.isArray(database) ? database.find(item => Object.keys(item)[0] === event?.threadID) : {};
-          let adminIDS = data ? database : createThread(event.threadID, api);
-          let blacklist = (JSON.parse(fs.readFileSync('./data/history.json', 'utf-8')).find(blacklist => blacklist.userid === userid) || {}).blacklist || [];
-          let hasPrefix = (event.body && aliases((event.body || '')?.trim().toLowerCase().split(/ +/).shift())?.hasPrefix == false) ? '' : prefix;
-          let [command, ...args] = ((event.body || '').trim().toLowerCase().startsWith(hasPrefix?.toLowerCase()) ? (event.body || '').trim().substring(hasPrefix?.length).trim().split(/\s+/).map(arg => arg.trim()) : []);
-          if (hasPrefix && aliases(command)?.hasPrefix === false) {
-            api.sendMessage(`Invalid usage this command doesn't need a prefix`, event.threadID, event.messageID);
-            return;
-          }
-          if (event.body && aliases(command)?.name) {
-            const isDevOnly = aliases(command)?.dev;
-            if (isDevOnly) {
-              if (!dev.includes(event.senderID)) {
-                return api.sendMessage("You dont have access to this command, you need to be a developer.", event.threadID, event.messageID)
+            
+            if (!event) return;
+            
+            // ORIHINAL NA CODE — WALANG BINAGO
+            let database = fs.existsSync('./data/database.json') ? JSON.parse(fs.readFileSync('./data/database.json', 'utf8')) : createDatabase();
+            let data = Array.isArray(database) ? database.find(item => Object.keys(item)[0] === event?.threadID) : {};
+            let adminIDS = data ? database : createThread(event.threadID, api);
+            let blacklist = (JSON.parse(fs.readFileSync('./data/history.json', 'utf-8')).find(blacklist => blacklist.userid === userid) || {}).blacklist || [];
+            let hasPrefix = (event.body && aliases((event.body || '')?.trim().toLowerCase().split(/ +/).shift())?.hasPrefix == false) ? '' : prefix;
+            let [command, ...args] = ((event.body || '').trim().toLowerCase().startsWith(hasPrefix?.toLowerCase()) ? (event.body || '').trim().substring(hasPrefix?.length).trim().split(/\s+/).map(arg => arg.trim()) : []);
+            
+            if (hasPrefix && aliases(command)?.hasPrefix === false) {
+              api.sendMessage(`Invalid usage this command doesn't need a prefix`, event.threadID, event.messageID);
+              return;
+            }
+            if (event.body && aliases(command)?.name) {
+              const isDevOnly = aliases(command)?.dev;
+              if (isDevOnly) {
+                if (!dev.includes(event.senderID)) {
+                  return api.sendMessage("You dont have access to this command, you need to be a developer.", event.threadID, event.messageID)
+                }
+              }
+              const role = aliases(command)?.role ?? 0;
+              const isAdmin = config?.[0]?.masterKey?.admin?.includes(event.senderID) || admin.includes(event.senderID);
+              const isThreadAdmin = isAdmin || ((Array.isArray(adminIDS) ? adminIDS.find(admin => Object.keys(admin)[0] === event.threadID) : {})?.[event.threadID] || []).some(admin => admin.id === event.senderID);
+              if ((role == 1 && !isAdmin) || (role == 2 && !isThreadAdmin) || (role == 3 && !config?.[0]?.masterKey?.admin?.includes(event.senderID))) {
+                api.sendMessage(`You don't have permission to use this command.`, event.threadID, event.messageID);
+                return;
               }
             }
-            const role = aliases(command)?.role ?? 0;
-            const isAdmin = config?.[0]?.masterKey?.admin?.includes(event.senderID) || admin.includes(event.senderID);
-            const isThreadAdmin = isAdmin || ((Array.isArray(adminIDS) ? adminIDS.find(admin => Object.keys(admin)[0] === event.threadID) : {})?.[event.threadID] || []).some(admin => admin.id === event.senderID);
-            if ((role == 1 && !isAdmin) || (role == 2 && !isThreadAdmin) || (role == 3 && !config?.[0]?.masterKey?.admin?.includes(event.senderID))) {
-              api.sendMessage(`You don't have permission to use this command.`, event.threadID, event.messageID);
+            if (event.body && event.body?.toLowerCase().startsWith(prefix.toLowerCase()) && aliases(command)?.name) {
+              if (blacklist.includes(event.senderID)) {
+                api.sendMessage("We're sorry, but you've been banned from using bot. If you believe this is a mistake or would like to appeal, please contact one of the bot admins for further assistance.", event.threadID, event.messageID);
+                return;
+              }
+            }
+            if (event.body && aliases(command)?.name) {
+              const now = Date.now();
+              const name = aliases(command)?.name;
+              const sender = Utils.cooldowns.get(`${event.senderID}_${name}_${userid}`);
+              const delay = aliases(command)?.cooldown ?? 0;
+              if (!sender || (now - sender.timestamp) >= delay * 1000) {
+                Utils.cooldowns.set(`${event.senderID}_${name}_${userid}`, {
+                  timestamp: now,
+                  command: name
+                });
+              } else {
+                const active = Math.ceil((sender.timestamp + delay * 1000 - now) / 1000);
+                api.sendMessage(`Please wait ${active} seconds before using the "${name}" command again.`, event.threadID, event.messageID);
+                return;
+              }
+            }
+            if (event.body && !command && event.body?.toLowerCase().startsWith(prefix.toLowerCase())) {
+              api.sendMessage(`Invalid command please use ${prefix}help to see the list of available commands.`, event.threadID, event.messageID);
               return;
             }
-          }
-          if (event.body && event.body?.toLowerCase().startsWith(prefix.toLowerCase()) && aliases(command)?.name) {
-            if (blacklist.includes(event.senderID)) {
-              api.sendMessage("We're sorry, but you've been banned from using bot. If you believe this is a mistake or would like to appeal, please contact one of the bot admins for further assistance.", event.threadID, event.messageID);
+            if (event.body && command && prefix && event.body?.toLowerCase().startsWith(prefix.toLowerCase()) && !aliases(command)?.name) {
+              api.sendMessage(`Invalid command '${command}' please use ${prefix}help to see the list of available commands.`, event.threadID, event.messageID);
               return;
             }
-          }
-          if (event.body && aliases(command)?.name) {
-            const now = Date.now();
-            const name = aliases(command)?.name;
-            const sender = Utils.cooldowns.get(`${event.senderID}_${name}_${userid}`);
-            const delay = aliases(command)?.cooldown ?? 0;
-            if (!sender || (now - sender.timestamp) >= delay * 1000) {
-              Utils.cooldowns.set(`${event.senderID}_${name}_${userid}`, {
-                timestamp: now,
-                command: name
-              });
-            } else {
-              const active = Math.ceil((sender.timestamp + delay * 1000 - now) / 1000);
-              api.sendMessage(`Please wait ${active} seconds before using the "${name}" command again.`, event.threadID, event.messageID);
-              return;
-            }
-          }
-          if (event.body && !command && event.body?.toLowerCase().startsWith(prefix.toLowerCase())) {
-            api.sendMessage(`Invalid command please use ${prefix}help to see the list of available commands.`, event.threadID, event.messageID);
-            return;
-          }
-          if (event.body && command && prefix && event.body?.toLowerCase().startsWith(prefix.toLowerCase()) && !aliases(command)?.name) {
-            api.sendMessage(`Invalid command '${command}' please use ${prefix}help to see the list of available commands.`, event.threadID, event.messageID);
-            return;
-          }
-          for (const {
-              handleEvent,
-              name
-            }
-            of Utils.handleEvent.values()) {
-            if (handleEvent && name && (
-                (enableCommands[1].handleEvent || []).includes(name) || (enableCommands[0].commands || []).includes(name))) {
-              handleEvent({
-                api,
-                event,
-                enableCommands,
-                admin,
-                prefix,
-                blacklist
-              });
-            }
-          }
-          switch (event.type) {
-            case 'message':
-            case 'message_reply':
-            case 'message_unsend':
-            case 'message_reaction':
-              if (enableCommands[0].commands.includes(aliases(command?.toLowerCase())?.name)) {
-                await ((aliases(command?.toLowerCase())?.run || (() => {}))({
+            for (const {
+                handleEvent,
+                name
+              } of Utils.handleEvent.values()) {
+              if (handleEvent && name && (
+                  (enableCommands[1].handleEvent || []).includes(name) || (enableCommands[0].commands || []).includes(name))) {
+                handleEvent({
                   api,
                   event,
-                  args,
                   enableCommands,
                   admin,
                   prefix,
-                  blacklist,
-                  Utils,
-                }));
+                  blacklist
+                });
               }
-              break;
-          }
-        });
-      } catch (error) {
-        console.error('Error during API listen, outside of listen', userid);
-        Utils.account.delete(userid);
-        deleteThisUser(userid);
-        return;
+            }
+            switch (event.type) {
+              case 'message':
+              case 'message_reply':
+              case 'message_unsend':
+              case 'message_reaction':
+                if (enableCommands[0].commands.includes(aliases(command?.toLowerCase())?.name)) {
+                  await ((aliases(command?.toLowerCase())?.run || (() => {}))({
+                    api,
+                    event,
+                    args,
+                    enableCommands,
+                    admin,
+                    prefix,
+                    blacklist,
+                    Utils,
+                  }));
+                }
+                break;
+            }
+          });
+        } catch (error) {
+          console.error('Error during API listen, outside of listen', userid);
+          Utils.account.delete(userid);
+          deleteThisUser(userid, false); // ❌ HINDI BUBURAHIN SESSION
+          return;
+        }
       }
+      
+      startListening();
       resolve();
     });
   });
 }
-async function deleteThisUser(userid) {
+
+// MODIFIED: may parameter na para hindi burahin session
+async function deleteThisUser(userid, removeSession = true) {
   const configFile = './data/history.json';
   let config = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
   const sessionFile = path.join('./data/session', `${userid}.json`);
   const index = config.findIndex(item => item.userid === userid);
   if (index !== -1) config.splice(index, 1);
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
-  try {
-    fs.unlinkSync(sessionFile);
-  } catch (error) {
-    console.log(error);
+  
+  // ✅ TANGGALIN LANG SA HISTORY, HINDI SA SESSION FOLDER
+  if (removeSession) {
+    try { fs.unlinkSync(sessionFile); } catch (e) {}
   }
 }
+
 async function addThisUser(userid, enableCommands, state, prefix, admin, blacklist) {
   const configFile = './data/history.json';
   const sessionFolder = './data/session';
@@ -416,6 +455,7 @@ function aliases(command) {
   }
   return null;
 }
+
 async function main() {
   const empty = require('fs-extra');
   const cacheFile = './script/cache';
@@ -426,6 +466,8 @@ async function main() {
   const sessionFolder = path.join('./data/session');
   if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder);
   const adminOfConfig = fs.existsSync('./data') && fs.existsSync('./data/config.json') ? JSON.parse(fs.readFileSync('./data/config.json', 'utf8')) : createConfig();
+  
+  // Auto-restart cron
   cron.schedule(`*/${adminOfConfig[0].masterKey.restartTime} * * * *`, async () => {
     const history = JSON.parse(fs.readFileSync('./data/history.json', 'utf-8'));
     history.forEach(user => {
@@ -438,6 +480,8 @@ async function main() {
     await fs.writeFileSync('./data/history.json', JSON.stringify(history, null, 2));
     process.exit(1);
   });
+  
+  // Auto-login saved sessions sa pag-start
   try {
     for (const file of fs.readdirSync(sessionFolder)) {
       const filePath = path.join(sessionFolder, file);
@@ -451,7 +495,8 @@ async function main() {
         const state = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
         if (enableCommands) await accountLogin(state, enableCommands, prefix, admin, blacklist);
       } catch (error) {
-        deleteThisUser(path.parse(file).name);
+        // ❌ HINDI BUBURAHIN — lalaktawan lang
+        console.log(`⚠️ Hindi ma-load ang session ${file}: ${error.message}`);
       }
     }
   } catch (error) {}
@@ -471,7 +516,7 @@ function createConfig() {
       logLevel: "silent",
       updatePresence: true,
       selfListen: true,
-      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64",
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
       online: true,
       autoMarkDelivery: false,
       autoMarkRead: false
@@ -482,6 +527,7 @@ function createConfig() {
   fs.writeFileSync('./data/config.json', JSON.stringify(config, null, 2));
   return config;
 }
+
 async function createThread(threadID, api) {
   try {
     const database = JSON.parse(fs.readFileSync('./data/database.json', 'utf8'));
@@ -496,6 +542,7 @@ async function createThread(threadID, api) {
     console.log(error);
   }
 }
+
 async function createDatabase() {
   const data = './data';
   const database = './data/database.json';
@@ -509,5 +556,5 @@ async function createDatabase() {
   }
   return database;
 }
+
 main()
-              
