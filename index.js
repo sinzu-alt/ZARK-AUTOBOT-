@@ -1,66 +1,46 @@
 const { spawn } = require("child_process");
 const path = require('path');
 
-// ⚙️ Settings
 const SCRIPT_FILE = "auto.js";
 const SCRIPT_PATH = path.join(__dirname, SCRIPT_FILE);
-const RESTART_DELAY = 3000; // 3 segundo bago mag-restart
-const MAX_RESTARTS = 50; // Walang hanggan kung mataas
+const RESTART_DELAY = 2000; // 2 segundo lang — mabilis bumalik
 
-let restartCount = 0;
 let isRunning = false;
+let restartCount = 0;
 
 function start() {
     if (isRunning) return;
     isRunning = true;
     restartCount++;
 
-    console.log(`\n🚀 [${new Date().toLocaleString('en-PH')}] Pumapasok: ${SCRIPT_FILE}`);
-    console.log(`🔄 Restart count: ${restartCount}`);
+    console.log(`\n🔥 SAIZEN BOT — WALANG HANGGAN`);
+    console.log(`🚀 Pumapasok: ${SCRIPT_FILE}`);
+    console.log(`🔄 Restart #${restartCount}`);
+    console.log(`===============================`);
 
     const main = spawn("node", [SCRIPT_PATH], {
         cwd: __dirname,
         stdio: "inherit",
-        shell: true,
-        env: { ...process.env, NODE_ENV: 'production' }
-    });
-
-    main.on("error", (err) => {
-        console.error(`❌ Error sa process: ${err.message}`);
-        isRunning = false;
-        scheduleRestart();
+        shell: true
     });
 
     main.on("close", (exitCode) => {
         isRunning = false;
-        
-        if (exitCode === 0) {
-            console.log(`✅ Tumigil nang maayos — exit code 0`);
-            // Hindi na restart kung maayos na tumigil
-            return;
-        }
-        
-        console.log(`🔴 Tumigil — exit code: ${exitCode}`);
-        scheduleRestart();
+        console.log(`\n🔴 Tumigil — exit code: ${exitCode}`);
+        console.log(`⏳ Babalik sa ${RESTART_DELAY/1000}s...`);
+        setTimeout(start, RESTART_DELAY); // ✅ LAGI BUMABALIK — WALANG LIMIT
+    });
+
+    main.on("error", (err) => {
+        isRunning = false;
+        console.error(`❌ Error: ${err.message}`);
+        setTimeout(start, RESTART_DELAY); // ✅ Kahit error — BUMABALIK
     });
 }
 
-function scheduleRestart() {
-    if (restartCount > MAX_RESTARTS) {
-        console.log(`⚠️ Sobrang daming restart — hihinto muna. I-restart mo nang mano-mano.`);
-        return;
-    }
-    
-    console.log(`⏳ Magre-restart sa ${RESTART_DELAY/1000} segundo...`);
-    setTimeout(start, RESTART_DELAY);
-}
-
-// Siguraduhin na iisang instance lang
 process.on("SIGINT", () => {
     console.log("\n🛑 Pinapatay...");
     process.exit(0);
 });
 
-console.log("🔥 SAIZEN BOT — AUTO-RESTART MANAGER");
-console.log("====================================");
-start();
+start(); // ✅ SIMULA — WALANG HANGGAN
