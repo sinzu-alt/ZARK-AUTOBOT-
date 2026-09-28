@@ -1,53 +1,66 @@
 const { spawn } = require("child_process");
 const path = require('path');
 
+// ⚙️ Settings
 const SCRIPT_FILE = "auto.js";
 const SCRIPT_PATH = path.join(__dirname, SCRIPT_FILE);
+const RESTART_DELAY = 3000; // 3 segundo bago mag-restart
+const MAX_RESTARTS = 50; // Walang hanggan kung mataas
 
 let restartCount = 0;
-const MAX_RESTARTS = Infinity; // Walang katapusan
-const DELAY_BEFORE_RESTART = 3000; // 3 segundo — mabilis pero hindi masyadong agaran
+let isRunning = false;
 
 function start() {
-  restartCount++;
-  console.log(`\n🚀 [${new Date().toLocaleString("en-PH", { timeZone: "Asia/Manila" })}] PAGSISIMULA...`);
-  console.log(`🔄 Pagkakataon: ${restartCount}`);
+    if (isRunning) return;
+    isRunning = true;
+    restartCount++;
 
-  const main = spawn("node", [SCRIPT_PATH], {
-    cwd: __dirname,
-    stdio: "inherit",
-    shell: true,
-    env: { 
-      ...process.env,
-      RESTART_COUNT: restartCount,
-      AUTO_RELOGIN: "true"
-    }
-  });
+    console.log(`\n🚀 [${new Date().toLocaleString('en-PH')}] Pumapasok: ${SCRIPT_FILE}`);
+    console.log(`🔄 Restart count: ${restartCount}`);
 
-  main.on("close", (exitCode) => {
-    if (exitCode === 0) {
-      console.log("✅ Tumigil nang tama — hindi magre-restart");
-      restartCount = 0;
-    } else {
-      console.log(`\n🔴 NADISCONNECT / TUMIGIL — Code: ${exitCode}`);
-      console.log(`⏳ Maghihintay ng ${DELAY_BEFORE_RESTART/1000}s...`);
-      console.log("🔁 LALAPAG ULIT AGAD!\n");
-      
-      setTimeout(() => start(), DELAY_BEFORE_RESTART);
-    }
-  });
+    const main = spawn("node", [SCRIPT_PATH], {
+        cwd: __dirname,
+        stdio: "inherit",
+        shell: true,
+        env: { ...process.env, NODE_ENV: 'production' }
+    });
 
-  main.on("error", (err) => {
-    console.error("❌ Error sa proseso:", err.message);
-    console.log(`⏳ Susubok ulit sa ${DELAY_BEFORE_RESTART/1000}s...`);
-    setTimeout(() => start(), DELAY_BEFORE_RESTART);
-  });
+    main.on("error", (err) => {
+        console.error(`❌ Error sa process: ${err.message}`);
+        isRunning = false;
+        scheduleRestart();
+    });
+
+    main.on("close", (exitCode) => {
+        isRunning = false;
+        
+        if (exitCode === 0) {
+            console.log(`✅ Tumigil nang maayos — exit code 0`);
+            // Hindi na restart kung maayos na tumigil
+            return;
+        }
+        
+        console.log(`🔴 Tumigil — exit code: ${exitCode}`);
+        scheduleRestart();
+    });
 }
 
-console.log("=".repeat(50));
-console.log("🔥 SAIZEN — AUTO-RELOGIN ACTIVE");
-console.log("✅ Pag nadisconnect → LALAPAG ULIT AGAD");
-console.log("✅ Walang patayan — tuloy-tuloy");
-console.log("=".repeat(50));
+function scheduleRestart() {
+    if (restartCount > MAX_RESTARTS) {
+        console.log(`⚠️ Sobrang daming restart — hihinto muna. I-restart mo nang mano-mano.`);
+        return;
+    }
+    
+    console.log(`⏳ Magre-restart sa ${RESTART_DELAY/1000} segundo...`);
+    setTimeout(start, RESTART_DELAY);
+}
 
+// Siguraduhin na iisang instance lang
+process.on("SIGINT", () => {
+    console.log("\n🛑 Pinapatay...");
+    process.exit(0);
+});
+
+console.log("🔥 SAIZEN BOT — AUTO-RESTART MANAGER");
+console.log("====================================");
 start();
